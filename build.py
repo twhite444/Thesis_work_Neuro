@@ -33,13 +33,15 @@ def load_data():
     leon_manifest = pyrfume.load_manifest('leon')
     
     molecules = pyrfume.load_data('leon/molecules.csv')
+    molecules.reset_index(inplace=True)
+    molecules.rename(columns={'index': 'CID'}, inplace=True)
     behavior_data = pyrfume.load_data('leon/behavior_1.csv')
     image_data = pyrfume.load_data('leon/csvs/1031_0.csv')
 
     # Save raw data to CSV for later use
-    molecules.to_csv(f"{output_dir}/molecules_raw.csv", index=False)
-    behavior_data.to_csv(f"{output_dir}/behavior_data.csv", index=False)
-    image_data.to_csv(f"{output_dir}/image_data.csv", index=False)
+    molecules.to_csv(f"{output_dir}/molecules_raw.csv", index=True)
+    behavior_data.to_csv(f"{output_dir}/behavior_data.csv", index=True)
+    image_data.to_csv(f"{output_dir}/image_data.csv", index=True)
 
     return molecules
 def is_valid_smiles(smiles):
@@ -53,6 +55,24 @@ def is_valid_smiles(smiles):
 # 2. Data Cleaning and Preprocessing
 ############################################
 
+def featurize_smiles(molecules):
+    smiles = molecules["IsomericSMILES"].tolist()
+    valid_smiles = [s for s in smiles if is_valid_smiles(s)]
+    successful_cids = []
+    mordred_features = []
+
+    for cid, smile in zip(molecules['CID'], valid_smiles):
+        try:
+            features = smiles_to_mordred([smile])
+            if not features.empty:
+                successful_cids.append(cid)
+                mordred_features.append(features)
+        except Exception as e:
+            print(f"Failed to featurize CID {cid} with SMILES {smile}: {e}")
+
+    mordred_features = pd.concat(mordred_features, ignore_index=True)
+    return successful_cids, mordred_features
+
 def preprocess_data(molecules):
     # Featurize molecules
     smiles = molecules["IsomericSMILES"].tolist()
@@ -60,7 +80,11 @@ def preprocess_data(molecules):
     # Check validity of SMILES strings
     valid_smiles = [s for s in smiles if is_valid_smiles(s)]
     print(f"Number of valid SMILES strings: {len(valid_smiles)}")
-    mordred_features = smiles_to_mordred(smiles)
+    #mordred_features = smiles_to_mordred(smiles)
+    successful_cids, mordred_features = featurize_smiles(molecules)
+    print(f"Number of successfully featurized molecules: {len(successful_cids)}")
+    print(mordred_features.head())
+
     
     # Remove rows with NaN values and columns with zero variance
     filtered_data = mordred_features.dropna(axis=1, how='any')

@@ -13,9 +13,16 @@ def load_maps_and_apply_mask(coverage_threshold=1.0):
     directory = pd.read_csv('output_data/behavior_data.csv')
     directory['CID'] = directory.index.map(lambda x: str(x).split('_')[0]).astype('int64')
     directory = directory[directory['CID'] > 0]
-    selected_features = pd.read_csv('selected_features.csv')
-    selected_cids = selected_features['CID'].unique()
+    selected_features = pd.read_csv('output_data/selected_features.csv')
+
+    molecules_raw = pd.read_csv('output_data/molecules_raw.csv')
+    selected_features['CID'] = molecules_raw['CID']
+    selected_features.set_index('CID', inplace=True, drop=True)
+
+    selected_cids = selected_features.index.unique()
+
     directory = directory[directory['CID'].isin(selected_cids)]
+    
     all_maps = []
     valid_counts = None
     
