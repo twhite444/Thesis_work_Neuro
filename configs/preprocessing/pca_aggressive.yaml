@@ -1,0 +1,27 @@
+# ==================================================================
+# Aggressive PCA Preprocessing Configuration
+# ==================================================================
+# Aggressive dimensionality reduction for speed
+# Best for: Quick experiments, when speed matters most
+# ==================================================================
+
+enabled: true
+cache: true
+
+methods:
+  - type: variance_threshold
+    threshold: 0.02  # More aggressive filtering
+  
+  - type: scaling
+    method: standard
+  
+  - type: pca
+    n_components: 20  # Very aggressive reduction
+    # Or: variance_threshold: 0.85  # Keep only 85% variance
+
+# Expected results:
+# - Input: ~150 features → Output: 20 components
+# - Variance retained: ~85%
+# - Speed: Very fast
+# - Use case: Quick tests, fast iteration
+# - Trade-off: May lose some information

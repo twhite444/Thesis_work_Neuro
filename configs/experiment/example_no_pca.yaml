@@ -1,0 +1,24 @@
+# ==================================================================
+# Example: No PCA Experiment
+# ==================================================================
+# Test if PCA helps or hurts performance
+# ==================================================================
+
+experiment_name: no_pca_test
+
+defaults:
+  - /model: medium_net
+  - /data: olfactory_default
+  - /preprocessing: variance_only  # ← No PCA, just scaling
+  - /training: default
+  - _self_
+
+seed: 42
+
+# Goal: See if PCA dimensionality reduction is beneficial
+# Compare this with baseline experiment
+
+# Expected:
+# - More features = slower training
+# - May perform better OR worse than baseline
+# - Good for understanding if PCA is helpful

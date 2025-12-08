@@ -1,0 +1,29 @@
+# ==================================================================
+# PCA Default Preprocessing Configuration
+# ==================================================================
+# Standard preprocessing with PCA dimensionality reduction
+# Best for: Most experiments, balanced speed/accuracy
+# ==================================================================
+
+enabled: true
+cache: true  # Cache results for speed
+
+methods:
+  # Step 1: Remove features with very low variance
+  - type: variance_threshold
+    threshold: 0.01  # Remove if variance < 0.01
+  
+  # Step 2: Standardize features (mean=0, std=1)
+  - type: scaling
+    method: standard  # StandardScaler
+  
+  # Step 3: PCA dimensionality reduction
+  - type: pca
+    n_components: 50  # Reduce to 50 components
+    # Alternative: variance_threshold: 0.95  # Keep 95% variance
+
+# Expected results:
+# - Input: ~150 features → Output: 50 components
+# - Variance retained: ~95%
+# - Speed: Fast after caching
+# - Use case: Recommended for most experiments

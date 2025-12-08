@@ -1,0 +1,35 @@
+# ==================================================================
+# Full Training Configuration
+# ==================================================================
+# Extended training for final results and publication
+# Total time: ~15-30 minutes
+# ==================================================================
+
+max_epochs: 200  # Long training
+
+early_stopping:
+  enabled: true
+  monitor: val_loss
+  patience: 25  # More patient (allows longer plateaus)
+  min_delta: 0.00001  # More sensitive to small improvements
+  mode: min
+
+checkpointing:
+  enabled: true
+  monitor: val_loss
+  save_top_k: 5  # Keep best 5 models
+  mode: min
+  filename: "best-{epoch:03d}-{val_loss:.6f}"
+  
+accelerator: auto
+devices: 1
+precision: 16  # Mixed precision for speed (2x faster!)
+
+gradient_clip_val: 1.0
+accumulate_grad_batches: 1
+
+# Use case:
+# - Final experiments
+# - Publication results
+# - When you need best possible performance
+# - Have time for longer training

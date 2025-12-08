@@ -1,0 +1,60 @@
+# ==================================================================
+# EXPERIMENT TEMPLATE
+# ==================================================================
+# 🎓 STUDENTS: Copy this file to create your own experiments!
+#
+# How to use:
+# 1. Copy this file: cp template.yaml my_experiment.yaml
+# 2. Edit the settings below
+# 3. Run: python scripts/train.py experiment=my_experiment
+# ==================================================================
+
+# Give your experiment a descriptive name
+# This creates a folder: experiments/your_name_here/
+experiment_name: my_experiment_name  # ← CHANGE THIS!
+
+# Choose which configurations to use
+defaults:
+  - /model: medium_net  # ← TRY: small_net, medium_net, large_net
+  - /data: olfactory_default
+  - /preprocessing: pca_default  # ← TRY: none, pca_default, pca_aggressive, variance_only
+  - /training: default  # ← TRY: quick_test, default, full_training
+  - _self_  # Keep this line
+
+# Random seed (change for different random initializations)
+seed: 42
+
+# ============================================================================
+# CUSTOMIZE BELOW (Optional - override defaults)
+# ============================================================================
+
+# Override specific model settings (optional)
+# model:
+#   architecture:
+#     dropout: 0.4  # Different dropout rate
+#   optimizer:
+#     learning_rate: 0.01  # Different learning rate
+
+# Override training settings (optional)
+# training:
+#   max_epochs: 150  # Different number of epochs
+#   early_stopping:
+#     patience: 20  # Different patience
+
+# Override data settings (optional)
+# data:
+#   batch_size: 128  # Larger batches
+
+# Override preprocessing settings (optional)
+# preprocessing:
+#   methods:
+#     - type: pca
+#       n_components: 75  # More components
+
+# ============================================================================
+# EXPERIMENT NOTES (for your records)
+# ============================================================================
+# Goal: [What are you testing?]
+# Hypothesis: [What do you expect?]
+# Changes from baseline: [What did you change?]
+# Results: [Fill in after running]

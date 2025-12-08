@@ -1,0 +1,46 @@
+# ==================================================================
+# Default Olfactory Dataset Configuration
+# ==================================================================
+# Configuration for the default thesis dataset
+# ==================================================================
+
+name: olfactory_default
+
+# Data location
+data_path: "data/00_raw/olfactory_v1.csv"  # Update if file name different
+
+# Column configuration
+target_column: "Target"  # What we're predicting
+smiles_column: "SMILES"  # Molecular SMILES (optional, for visualization)
+feature_columns: null  # null = use all numeric columns except target
+
+# Columns to exclude (if any)
+exclude_columns: []
+
+# Data splitting
+train_test_split:
+  test_size: 0.2  # 20% test, 80% train
+  random_state: 42
+  shuffle: true
+  stratify: false  # Set true for classification
+
+# Data loading optimization
+batch_size: 64  # Batch size for training
+num_workers: 4  # Parallel data loading threads
+pin_memory: true  # Faster GPU transfer
+persistent_workers: true  # Reuse workers
+
+# Data validation
+validation:
+  check_missing: true  # Warn about missing values
+  check_infinite: true  # Warn about infinite values
+  strict: false  # Don't fail on warnings
+
+# Missing value handling
+missing_values:
+  strategy: "drop_rows"  # Options: "drop_rows", "fill_mean", "fill_median"
+  threshold: 0.1  # Drop columns with >10% missing
+
+# Dataset info (for reference)
+expected_samples: ~1000  # Approximate number of molecules
+expected_features: ~150  # Approximate number of features
