@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# PyTorch Lightning
+lightning_logs/
+checkpoints/
+
+# Hydra
+outputs/
+.hydra/
+multirun/
+
+# Data & Cache (DON'T commit large files!)
+data/01_features/**
+data/02_processed/**
+data/03_splits/**
+!data/*/.gitkeep
+cache_metadata.json
+
+# Experiments (DON'T commit experiment outputs!)
+experiments/**
+!experiments/.gitkeep
+
+# Exploration Outputs (DON'T commit visualizations!)
+exploration_outputs/**
+!exploration_outputs/*/.gitkeep
+
+# Model Weights (too large for git)
+*.pth
+*.ckpt
+*.h5
+*.pkl
+*.joblib
+
+# Logs
+*.log
+logs/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep these files
+!data/00_raw/.gitkeep
+!data/01_features/.gitkeep
+!data/02_processed/.gitkeep
+!data/03_splits/.gitkeep

@@ -1,0 +1,52 @@
+# Core Deep Learning
+torch>=2.0.0
+pytorch-lightning>=2.0.0
+torchmetrics>=1.0.0
+
+# Configuration Management
+hydra-core>=1.3.0
+omegaconf>=2.3.0
+
+# Data Science
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+scipy>=1.10.0
+
+# Chemistry/Molecular
+rdkit>=2023.3.1
+pyrfume>=0.0.11
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.14.0
+
+# Logging & Monitoring
+tensorboard>=2.13.0
+wandb>=0.15.0  # Optional but recommended
+
+# Utilities
+tqdm>=4.65.0
+pyyaml>=6.0
+joblib>=1.3.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+isort>=5.12.0
+flake8>=6.0.0
+
+# Jupyter
+jupyter>=1.0.0
+ipykernel>=6.25.0
+ipywidgets>=8.0.0
+notebook>=7.0.0
+
+# Optional: Hyperparameter Optimization
+optuna>=3.2.0  # For smart hyperparameter tuning
+
+# Optional: Advanced Features (uncomment if needed)
+# torch-geometric>=2.3.0  # For GNN support (future)
+# dvc>=3.0.0  # For data version control
