@@ -38,6 +38,16 @@ This folder contains the **original research code** from the thesis project that
 - **Purpose**: Dependency installation script
 - **Maps to new system**: `requirements.txt`
 
+### `basic_neural_pipeline copy.py`
+- **Purpose**: Another version of neural network pipeline
+- **Maps to new system**: `scripts/train.py`
+
+### Output Files
+- `global_mask.png`, `top_3_components.png`: Visualization outputs
+- `pca_transformed_data.csv`: PCA transformation results
+- `output_data/`: Various data processing outputs
+- **Maps to new system**: `exploration_outputs/` and `experiments/`
+
 ## 🔄 Migration Map
 
 | Legacy File | New Location | Notes |
