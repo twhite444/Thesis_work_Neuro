@@ -44,6 +44,27 @@ cd Thesis_work_Neuro
 pip install -e .
 ```
 
+### Test the System
+
+```bash
+# Run quick test with synthetic data (< 1 minute)
+python scripts/train.py \
+    model=small_net \
+    preprocessing=none \
+    training=quick_test \
+    experiment_name=test_run \
+    training.max_epochs=5 \
+    data.data_path=data/00_raw/test_data.csv \
+    data.target_column=olfactory_intensity \
+    data.smiles_column=null \
+    data.batch_size=16
+
+# Expected output:
+# ✅ Training completes in ~5 seconds
+# ✅ Test correlation: ~0.6
+# ✅ Creates: experiments/test_run/
+```
+
 ### Run Your First Experiment
 
 ```bash
