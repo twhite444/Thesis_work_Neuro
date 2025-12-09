@@ -27,6 +27,9 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import VarianceThreshold
 
+# Import PCA masking for legacy replication
+from neuro_smell.stages.pca_masking import PCAMasking
+
 
 class Preprocessor:
     """
@@ -50,9 +53,12 @@ class Preprocessor:
         self.scaler = None
         self.variance_selector = None
         self.pca = None
+        self.pca_masker = None  # For PCA masking approach (legacy/pca_copy.py)
+        self.pca_mask = None  # Boolean mask from PCA masking
         
         # Flags
         self.is_fitted = False
+        self.use_pca_masking = False  # Track which PCA approach is used
         
         # Store feature names for interpretability
         self.input_features = None
@@ -82,20 +88,40 @@ class Preprocessor:
             self.variance_selector = None
     
     def _init_pca(self):
-        """Initialize PCA if enabled"""
-        if self.config.preprocessing.pca.enabled:
-            n_components = self.config.preprocessing.pca.n_components
+        """Initialize PCA or PCA masking if enabled"""
+        if not self.config.preprocessing.pca.enabled:
+            self.pca = None
+            self.pca_masker = None
+            self.use_pca_masking = False
+            return
+        
+        n_components = self.config.preprocessing.pca.n_components
+        
+        # Handle 'auto' option (keep components for 95% variance)
+        if n_components == 'auto':
+            n_components = 0.95
+        
+        # Check if using PCA masking approach (from legacy/pca_copy.py)
+        self.use_pca_masking = self.config.preprocessing.pca.get('use_masking', False)
+        
+        if self.use_pca_masking:
+            # Use PCA masking: PCA for feature importance, mask applied to original features
+            masking_threshold = self.config.preprocessing.pca.get('masking_threshold', 0.1)
+            random_state = self.config.preprocessing.pca.get('random_state', 42)
             
-            # Handle 'auto' option (keep components for 95% variance)
-            if n_components == 'auto':
-                n_components = 0.95
-            
+            self.pca_masker = PCAMasking(
+                n_components=n_components,
+                threshold=masking_threshold,
+                random_state=random_state
+            )
+            self.pca = None  # Not using standard PCA transformation
+        else:
+            # Standard PCA transformation
             self.pca = PCA(
                 n_components=n_components,
                 random_state=self.config.preprocessing.pca.get('random_state', 42)
             )
-        else:
-            self.pca = None
+            self.pca_masker = None
     
     def fit_transform(self, X: np.ndarray, feature_names: Optional[list] = None) -> np.ndarray:
         """
@@ -137,8 +163,45 @@ class Preprocessor:
             
             print(f"   Removed {n_removed} low-variance features ({n_removed/n_before*100:.1f}%)")
         
-        # Step 3: PCA
-        if self.pca is not None:
+        # Step 3: PCA or PCA Masking
+        if self.use_pca_masking and self.pca_masker is not None:
+            # PCA Masking approach (legacy/pca_copy.py)
+            print(f"   PCA Masking: {self.config.preprocessing.pca.n_components} components, "
+                  f"threshold={self.config.preprocessing.pca.get('masking_threshold', 0.1)}")
+            
+            # Store pre-masking features for transform
+            X_scaled = X.copy()
+            
+            n_before = X.shape[1]
+            X, self.pca_mask = self.pca_masker.fit_transform(X)
+            n_after = X.shape[1]
+            
+            # Report results (printed by pca_masker.fit_transform)
+            
+            # Generate visualizations if enabled
+            if self.config.preprocessing.pca.get('visualize', False):
+                from pathlib import Path
+                exp_dir = Path(self.config.paths.experiments) / self.config.experiment_name
+                viz_dir = exp_dir / self.config.preprocessing.pca.get('visualization_dir', 'pca_analysis')
+                
+                self.pca_masker.visualize(str(viz_dir))
+                
+                # Save mask if requested
+                if self.config.preprocessing.pca.get('save_mask', False):
+                    mask_path = viz_dir / 'feature_mask.csv'
+                    self.pca_masker.save_mask(str(mask_path))
+            
+            # Store masked feature names
+            if feature_names and self.variance_selector:
+                selected_mask = self.variance_selector.get_support()
+                selected_features = [f for i, f in enumerate(feature_names) if selected_mask[i]]
+                # Apply PCA mask to selected features
+                self.output_features = [f for i, f in enumerate(selected_features) if self.pca_mask[i]]
+            else:
+                self.output_features = [f"masked_feature_{i}" for i in range(n_after)]
+                
+        elif self.pca is not None:
+            # Standard PCA transformation
             print(f"   PCA: {self.config.preprocessing.pca.n_components} components")
             
             n_before = X.shape[1]
@@ -189,7 +252,12 @@ class Preprocessor:
         if self.variance_selector is not None:
             X = self.variance_selector.transform(X)
         
-        if self.pca is not None:
+        # Apply PCA or PCA masking
+        if self.use_pca_masking and self.pca_masker is not None:
+            # Apply mask to original scaled features
+            X = self.pca_masker.transform(X)
+        elif self.pca is not None:
+            # Apply standard PCA transformation
             X = self.pca.transform(X)
         
         return X
@@ -226,6 +294,7 @@ class Preprocessor:
             'scaling': self.config.preprocessing.scaling.method if self.scaler else 'none',
             'variance_threshold': self.config.preprocessing.variance_threshold.enabled,
             'pca_enabled': self.config.preprocessing.pca.enabled,
+            'pca_masking_enabled': self.use_pca_masking,
         }
         
         if self.is_fitted:
@@ -233,8 +302,17 @@ class Preprocessor:
             info['output_dim'] = len(self.output_features) if self.output_features else None
             
             if self.pca:
+                # Standard PCA
                 info['pca_components'] = self.pca.n_components_
                 info['variance_explained'] = self.pca.explained_variance_ratio_.sum()
+            elif self.pca_masker:
+                # PCA Masking
+                masker_info = self.pca_masker.get_info()
+                info['pca_components'] = masker_info.get('n_components')
+                info['variance_explained'] = masker_info.get('variance_explained')
+                info['masking_threshold'] = masker_info.get('threshold')
+                info['features_selected'] = masker_info.get('features_selected')
+                info['reduction_percent'] = masker_info.get('reduction_percent')
         
         return info
 

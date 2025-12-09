@@ -1,0 +1,44 @@
+# ==================================================================
+# Legacy Replication Preprocessing Configuration
+# ==================================================================
+# Exact preprocessing from legacy/pca_copy.py
+# Best for: Replicating thesis results, baseline comparisons
+# ==================================================================
+
+enabled: true
+cache: true  # Cache results for speed
+
+methods:
+  # Step 1: Remove features with very low variance
+  # (legacy uses threshold=1.0 after standardization)
+  - type: variance_threshold
+    threshold: 0.01  # Before standardization equivalent
+  
+  # Step 2: Standardize features (mean=0, std=1)
+  - type: scaling
+    method: standard  # StandardScaler
+  
+  # Step 3: PCA-based feature masking (CRITICAL for legacy replication)
+  - type: pca
+    n_components: 50  # From legacy experiments
+    
+    # PCA Masking - the key to legacy replication!
+    # This uses PCA loadings to create a mask, then applies it to
+    # the ORIGINAL standardized features (not PCA-transformed features)
+    use_masking: true  # REQUIRED for legacy match
+    masking_threshold: 0.1  # From legacy/pca_copy.py
+    
+    # Visualization (matches legacy outputs)
+    visualize: true  # Generate global_mask.png, top_3_components.png, etc.
+    visualization_dir: "pca_analysis"
+    save_mask: true  # Save mask for reproducibility
+
+# Expected results (from legacy):
+# - Input: 149 features (after VarianceThreshold)
+# - PCA: 50 components explaining ~95% variance
+# - Mask: ~70-90 features selected (threshold=0.1)
+# - Output: Masked original features for training
+# 
+# This configuration matches the exact preprocessing used in the thesis.
+# The key difference from standard PCA is that we train on MASKED ORIGINAL
+# features rather than PCA-transformed features, which maintains interpretability.

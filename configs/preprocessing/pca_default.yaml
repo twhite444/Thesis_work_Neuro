@@ -17,13 +17,24 @@ methods:
   - type: scaling
     method: standard  # StandardScaler
   
-  # Step 3: PCA dimensionality reduction
+  # Step 3: PCA dimensionality reduction with masking
   - type: pca
     n_components: 50  # Reduce to 50 components
     # Alternative: variance_threshold: 0.95  # Keep 95% variance
+    
+    # CRITICAL: PCA Masking (from legacy/pca_copy.py)
+    # Instead of using PCA-transformed features, use PCA to create a mask
+    # and apply it to the ORIGINAL standardized features
+    use_masking: true  # Enable PCA masking approach
+    masking_threshold: 0.1  # Threshold for global feature importance mask
+    
+    # Visualization
+    visualize: true  # Generate PCA analysis plots
+    visualization_dir: "pca_analysis"  # Subdirectory in experiment folder
 
 # Expected results:
-# - Input: ~150 features → Output: 50 components
-# - Variance retained: ~95%
+# - Input: ~150 features → Output: ~70-90 masked features (depends on threshold)
+# - Features selected based on PCA loadings across all components
+# - Interpretable: Uses original features, not PCA components
 # - Speed: Fast after caching
-# - Use case: Recommended for most experiments
+# - Use case: Recommended for legacy replication and interpretability

@@ -38,6 +38,13 @@ preprocessing:
   pca:
     enabled: true
     n_components: 50  # Balanced reduction
+    
+    # PCA Masking (legacy replication approach)
+    use_masking: true  # Use PCA for feature importance, apply mask to original features
+    masking_threshold: 0.1  # Adjust based on desired feature count
+    visualize: true  # Generate PCA analysis plots
+    visualization_dir: "pca_analysis"
+    save_mask: true  # Save mask for reproducibility
   
   output_file: "data/02_processed/processed.csv"
 
