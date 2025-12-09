@@ -2,12 +2,14 @@
 Utility functions and helpers.
 
 Available utilities:
-- CacheManager: Smart caching for pipeline stages
+- CacheManager: Legacy caching for pipeline stages
+- SmartCacheManager: New stage-specific smart caching
 - metrics: Custom evaluation metrics (Pearson correlation, R², MAE, RMSE)
 - data_utils: Data validation, summarization, and split helpers
 """
 
 from .cache_manager import CacheManager
+from .smart_cache import SmartCacheManager, get_cache_manager
 from .metrics import (
     pearson_correlation,
     r2_score,
@@ -28,6 +30,8 @@ from .data_utils import (
 
 __all__ = [
     'CacheManager',
+    'SmartCacheManager',
+    'get_cache_manager',
     'pearson_correlation',
     'r2_score',
     'mean_absolute_error',

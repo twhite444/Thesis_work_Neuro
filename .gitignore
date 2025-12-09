@@ -52,6 +52,7 @@ multirun/
 data/01_features/**
 data/02_processed/**
 data/03_splits/**
+data/.cache/**
 !data/*/.gitkeep
 cache_metadata.json
 

@@ -1,0 +1,85 @@
+# ==================================================================
+# Baseline Experiment
+# ==================================================================
+# Good starting point with balanced settings
+# ==================================================================
+
+experiment_name: baseline
+
+# ==================================================================
+# STAGE 1: Feature Extraction
+# ==================================================================
+
+feature_extraction:
+  smiles_file: "data/00_raw/olfactory_v1.csv"
+  smiles_column: "SMILES"
+  target_column: "Target"
+  descriptors:
+    - "all"
+  output_file: "data/01_features/features.csv"
+  n_jobs: -1
+  chunk_size: 100
+
+# ==================================================================
+# STAGE 2: Preprocessing
+# ==================================================================
+
+preprocessing:
+  input_file: "data/01_features/features.csv"
+  
+  variance_threshold:
+    enabled: true
+    threshold: 0.01
+  
+  scaling:
+    enabled: true
+    method: "standard"
+  
+  pca:
+    enabled: true
+    n_components: 50  # Balanced reduction
+  
+  output_file: "data/02_processed/processed.csv"
+
+# ==================================================================
+# STAGE 3: Training
+# ==================================================================
+
+training:
+  input_file: "data/02_processed/processed.csv"
+  target_column: "Target"
+  
+  train_test_split:
+    test_size: 0.2
+    random_state: 42
+  
+  max_epochs: 50
+  batch_size: 64
+  
+  early_stopping:
+    enabled: true
+    patience: 10
+    min_delta: 0.0001
+  
+  model:
+    type: "feedforward"
+    hidden_dims: [64, 32]
+    dropout: 0.3
+    activation: "relu"
+    
+    optimizer:
+      type: "adam"
+      learning_rate: 0.001
+      weight_decay: 0.0
+  
+  output_dir: "experiments/${experiment_name}"
+  accelerator: "auto"
+  precision: 32
+
+# ==================================================================
+# Paths
+# ==================================================================
+paths:
+  root: ${oc.env:PWD}
+  data: ${paths.root}/data
+  experiments: ${paths.root}/experiments
