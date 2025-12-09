@@ -379,3 +379,190 @@ def preprocess_data(
         cache_manager.save_cache('preprocessing', cache_data)
     
     return preprocessed_df, preprocessor
+
+
+def prepare_training_data(
+    molecular_features_df: pd.DataFrame,
+    brain_pca_scores_path: str,
+    cid_column: str = 'CID'
+) -> Tuple[np.ndarray, np.ndarray, pd.Index, Dict[str, Any]]:
+    """
+    Align molecular features (X) with brain PCA scores (y) for training.
+    
+    This is the CRITICAL alignment step that ensures:
+    1. Molecular features and brain targets correspond to the same molecules
+    2. Both X and y have matching indices (CIDs)
+    3. Data is ready for model training: X → y
+    
+    Args:
+        molecular_features_df: DataFrame with molecular features (544 cols after preprocessing)
+                               Must have CID as index or column
+        brain_pca_scores_path: Path to brain_pca_scores.csv (287 × 5 PCA scores)
+        cid_column: Name of CID column/index
+    
+    Returns:
+        X: Molecular features array (n_samples × 544)
+        y: Brain PCA scores array (n_samples × 5)
+        common_cids: CIDs present in both datasets
+        metadata: Dict with alignment statistics
+    
+    Raises:
+        ValueError: If no common CIDs found or data shapes don't match
+    
+    Example:
+        >>> # After feature extraction and preprocessing
+        >>> molecular_features = pd.read_csv('data/02_processed/selected_features.csv')
+        >>> X, y, cids, meta = prepare_training_data(
+        ...     molecular_features,
+        ...     'data/02_processed/brain_pca_scores.csv'
+        ... )
+        >>> # Now ready for training: model.fit(X, y)
+    """
+    print("\n" + "="*80)
+    print("ALIGNING MOLECULAR FEATURES WITH BRAIN PCA TARGETS")
+    print("="*80)
+    
+    # Load brain PCA scores
+    print(f"\n1. Loading brain PCA scores from {brain_pca_scores_path}...")
+    brain_pca_df = pd.read_csv(brain_pca_scores_path)
+    
+    if 'CID' not in brain_pca_df.columns:
+        raise ValueError(
+            f"brain_pca_scores.csv must have 'CID' column. "
+            f"Found columns: {brain_pca_df.columns.tolist()}"
+        )
+    
+    # Set CID as index for brain targets
+    brain_pca_df = brain_pca_df.set_index('CID')
+    print(f"   Loaded {len(brain_pca_df)} brain PCA targets")
+    print(f"   Target shape: {brain_pca_df.shape}")
+    print(f"   Target columns: {brain_pca_df.columns.tolist()}")
+    
+    # Prepare molecular features
+    print(f"\n2. Preparing molecular features...")
+    
+    # Check if CID is index or column
+    if cid_column in molecular_features_df.columns:
+        print(f"   Using '{cid_column}' column as index")
+        molecular_features_df = molecular_features_df.set_index(cid_column)
+    elif molecular_features_df.index.name == cid_column:
+        print(f"   CID already set as index")
+    else:
+        # Try to use existing index
+        print(f"   Using existing index as CID")
+        molecular_features_df.index.name = cid_column
+    
+    print(f"   Molecular features shape: {molecular_features_df.shape}")
+    
+    # Find common CIDs (intersection)
+    print(f"\n3. Finding common molecules...")
+    
+    # Use indices directly (keep native dtype - usually int64)
+    molecular_cids = molecular_features_df.index
+    brain_cids = brain_pca_df.index
+    
+    common_cids = molecular_cids.intersection(brain_cids)
+    
+    if len(common_cids) == 0:
+        raise ValueError(
+            "No common CIDs found between molecular features and brain PCA scores!\n"
+            f"Molecular CIDs sample: {molecular_cids[:10].tolist()}\n"
+            f"Brain CIDs sample: {brain_cids[:10].tolist()}"
+        )
+    
+    print(f"   Molecular features: {len(molecular_cids)} unique CIDs")
+    print(f"   Brain PCA targets: {len(brain_cids)} unique CIDs")
+    print(f"   Common CIDs: {len(common_cids)} ✅")
+    
+    # Show CIDs that are missing
+    missing_in_brain = set(molecular_cids) - set(brain_cids)
+    missing_in_molecular = set(brain_cids) - set(molecular_cids)
+    
+    if missing_in_brain:
+        print(f"   ⚠️ {len(missing_in_brain)} CIDs in molecular but not brain data")
+        if len(missing_in_brain) <= 5:
+            print(f"      Missing CIDs: {sorted(missing_in_brain)}")
+    
+    if missing_in_molecular:
+        print(f"   ⚠️ {len(missing_in_molecular)} CIDs in brain but not molecular data")
+        if len(missing_in_molecular) <= 5:
+            print(f"      Missing CIDs: {sorted(missing_in_molecular)}")
+    
+    # Align data by common CIDs
+    print(f"\n4. Aligning datasets...")
+    X_df = molecular_features_df.loc[common_cids]
+    y_df = brain_pca_df.loc[common_cids]
+    
+    # Convert to numpy arrays
+    X = X_df.values
+    y = y_df.values
+    
+    print(f"   ✅ Aligned X shape: {X.shape}")
+    print(f"   ✅ Aligned y shape: {y.shape}")
+    
+    # Data quality checks
+    print(f"\n5. Data quality checks...")
+    
+    # Check for NaN values
+    x_nans = np.isnan(X).sum()
+    y_nans = np.isnan(y).sum()
+    
+    if x_nans > 0:
+        print(f"   ⚠️ X contains {x_nans} NaN values ({x_nans/X.size*100:.2f}%)")
+    else:
+        print(f"   ✅ X has no NaN values")
+    
+    if y_nans > 0:
+        print(f"   ⚠️ y contains {y_nans} NaN values ({y_nans/y.size*100:.2f}%)")
+    else:
+        print(f"   ✅ y has no NaN values")
+    
+    # Check for infinite values
+    x_infs = np.isinf(X).sum()
+    y_infs = np.isinf(y).sum()
+    
+    if x_infs > 0:
+        print(f"   ⚠️ X contains {x_infs} infinite values")
+    else:
+        print(f"   ✅ X has no infinite values")
+    
+    if y_infs > 0:
+        print(f"   ⚠️ y contains {y_infs} infinite values")
+    else:
+        print(f"   ✅ y has no infinite values")
+    
+    # Statistics
+    print(f"\n6. Summary statistics...")
+    print(f"   X statistics:")
+    print(f"      Mean: {X.mean():.4f}")
+    print(f"      Std:  {X.std():.4f}")
+    print(f"      Min:  {X.min():.4f}")
+    print(f"      Max:  {X.max():.4f}")
+    
+    print(f"   y statistics:")
+    print(f"      Mean: {y.mean(axis=0)}")
+    print(f"      Std:  {y.std(axis=0)}")
+    
+    # Create metadata dictionary
+    metadata = {
+        'n_samples': len(common_cids),
+        'n_features': X.shape[1],
+        'n_targets': y.shape[1],
+        'common_cids': common_cids.tolist(),
+        'missing_in_brain': sorted(missing_in_brain) if missing_in_brain else [],
+        'missing_in_molecular': sorted(missing_in_molecular) if missing_in_molecular else [],
+        'x_nans': int(x_nans),
+        'y_nans': int(y_nans),
+        'x_infs': int(x_infs),
+        'y_infs': int(y_infs),
+        'feature_names': X_df.columns.tolist(),
+        'target_names': y_df.columns.tolist()
+    }
+    
+    print("\n" + "="*80)
+    print("ALIGNMENT COMPLETE ✅")
+    print("="*80)
+    print(f"Ready for training: X ({X.shape[0]} × {X.shape[1]}) → y ({y.shape[0]} × {y.shape[1]})")
+    print("="*80 + "\n")
+    
+    return X, y, common_cids, metadata
