@@ -125,3 +125,6 @@ def test_pipeline_load_and_mask_end_to_end(tmp_path, monkeypatch):
     # Visualizations exist
     assert (tmp_path / 'global_mask.png').exists()
     assert (tmp_path / 'masked_averaged_example.png').exists()
+    assert (tmp_path / 'masked_averaged_gallery.png').exists()
+    assert (tmp_path / 'coverage_counts.png').exists()
+    assert (tmp_path / 'coverage_histogram.png').exists()

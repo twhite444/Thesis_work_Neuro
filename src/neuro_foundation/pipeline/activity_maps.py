@@ -101,6 +101,18 @@ def visualize_global_mask(mask: np.ndarray, output_path: str) -> None:
 def visualize_coverage(valid_counts: np.ndarray, output_path: str) -> None:
     visualize_map(valid_counts.astype(float), title='Coverage Counts', output_path=output_path, cmap='magma')
 
+def visualize_coverage_histogram(valid_counts: np.ndarray, output_path: str) -> None:
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.figure(figsize=(8, 6))
+    flat = valid_counts.ravel()
+    plt.hist(flat, bins=20, color='steelblue', alpha=0.8)
+    plt.title('Pixel Coverage Histogram')
+    plt.xlabel('Number of maps covering pixel')
+    plt.ylabel('Count')
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+
 
 def pipeline_load_and_mask(directory_csv: str, base_path: str = 'leon', coverage_threshold: float = 1.0,
                             output_dir: str = 'output_data', verbose: bool = False) -> Tuple[List[np.ndarray], List[int], np.ndarray]:
@@ -113,13 +125,38 @@ def pipeline_load_and_mask(directory_csv: str, base_path: str = 'leon', coverage
         print(f"Directory rows: {len(df)}")
         print(df.head())
     records = load_activity_maps(df, base_path=base_path)
+    # coverage visualization (before mask)
+    shape = records[0].map.shape if records else (0, 0)
+    valid_counts = np.zeros(shape, dtype=int)
+    for r in records:
+        valid_counts += ~np.isnan(r.map)
+    visualize_coverage(valid_counts, os.path.join(output_dir, 'coverage_counts.png'))
+    visualize_coverage_histogram(valid_counts, os.path.join(output_dir, 'coverage_histogram.png'))
+
     mask = compute_global_mask(records, coverage_threshold=coverage_threshold)
     masked_records = apply_mask(records, mask)
     averaged_maps, cids = average_by_cid(masked_records)
     # Visualizations
     visualize_global_mask(mask, os.path.join(output_dir, 'global_mask.png'))
-    # Save one example masked map if available
+    # Save example masked maps and a small gallery if available
     if averaged_maps:
         visualize_map(averaged_maps[0], title=f'Masked Averaged Map CID={cids[0]}',
                       output_path=os.path.join(output_dir, 'masked_averaged_example.png'))
+        # Gallery of up to 6 averaged maps
+        n = min(len(averaged_maps), 6)
+        cols = 3
+        rows = (n + cols - 1) // cols
+        fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 4*rows))
+        axes = np.array(axes).reshape(-1)
+        for i in range(n):
+            ax = axes[i]
+            ax.imshow(averaged_maps[i], cmap='viridis')
+            ax.set_title(f'CID={cids[i]}')
+            ax.axis('off')
+        # Hide unused axes
+        for j in range(n, len(axes)):
+            axes[j].axis('off')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'masked_averaged_gallery.png'), dpi=300)
+        plt.close()
     return averaged_maps, cids, mask
