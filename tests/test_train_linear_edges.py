@@ -4,6 +4,7 @@ import pytest
 from src.neuro_foundation.pipeline.train_linear import train_linear_regression
 
 
+@pytest.mark.unit
 def test_train_linear_with_nans(tmp_path):
     df = pd.DataFrame({
         'x1': [1, np.nan, 3, 4],
@@ -14,6 +15,7 @@ def test_train_linear_with_nans(tmp_path):
     assert 'mse' in metrics
 
 
+@pytest.mark.unit
 def test_train_linear_constant_target(tmp_path):
     df = pd.DataFrame({
         'x1': [1, 2, 3, 4],
@@ -25,6 +27,7 @@ def test_train_linear_constant_target(tmp_path):
     assert metrics['mse'] >= 0.0
 
 
+@pytest.mark.unit
 def test_train_linear_tiny_sample(tmp_path):
     df = pd.DataFrame({
         'x1': [1, 2],

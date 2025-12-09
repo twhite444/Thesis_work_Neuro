@@ -1,7 +1,9 @@
 import pandas as pd
+import pytest
 from src.neuro_foundation.pipeline.feature_select import select_features
 
 
+@pytest.mark.unit
 def test_select_features_threshold(tmp_path):
     df = pd.DataFrame({
         'a': [0, 0, 0, 0],

@@ -1,7 +1,9 @@
 import pandas as pd
+import pytest
 from src.neuro_foundation.pipeline.train_linear import train_linear_regression
 
 
+@pytest.mark.unit
 def test_train_linear_regression_requires_target(tmp_path):
     df = pd.DataFrame({'x': [1,2,3]})
     try:
@@ -11,6 +13,7 @@ def test_train_linear_regression_requires_target(tmp_path):
         assert "Target column" in str(e)
 
 
+@pytest.mark.unit
 def test_train_linear_regression_runs(tmp_path):
     df = pd.DataFrame({
         'x1': [1, 2, 3, 4],

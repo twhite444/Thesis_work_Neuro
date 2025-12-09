@@ -3,6 +3,7 @@ import pytest
 from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
 
 
+@pytest.mark.unit
 def test_preprocess_empty_dataframe(tmp_path):
     df = pd.DataFrame({'IsomericSMILES': []})
     # Expect failure from downstream mordred due to empty input; verify graceful exception or empty output
@@ -10,6 +11,7 @@ def test_preprocess_empty_dataframe(tmp_path):
         featurize_and_standardize(df, output_dir=str(tmp_path))
 
 
+@pytest.mark.unit
 def test_preprocess_invalid_smiles(tmp_path, monkeypatch):
     # Force invalid smiles raising behavior
     import src.neuro_foundation.pipeline.preprocess as pp
@@ -32,6 +34,7 @@ def test_preprocess_invalid_smiles(tmp_path, monkeypatch):
     assert (tmp_path / 'scaler_stats.json').exists()
 
 
+@pytest.mark.unit
 def test_preprocess_scaler_stats_length(tmp_path, monkeypatch):
     import src.neuro_foundation.pipeline.preprocess as pp
 

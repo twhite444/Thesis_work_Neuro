@@ -1,11 +1,13 @@
 import pandas as pd
 import json
+import pytest
 
 from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
 from src.neuro_foundation.pipeline.feature_select import select_features
 from src.neuro_foundation.pipeline.train_linear import train_linear_regression
 
 
+@pytest.mark.integration
 def test_end_to_end_pipeline(tmp_path, monkeypatch):
     # Use synthetic molecules to avoid external data loading
     molecules = pd.DataFrame({

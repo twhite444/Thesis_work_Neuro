@@ -1,7 +1,9 @@
 import pandas as pd
+import pytest
 from src.neuro_foundation.pipeline.feature_select import select_features
 
 
+@pytest.mark.unit
 def test_feature_select_zero_threshold_keeps_all(tmp_path):
     df = pd.DataFrame({
         'a': [0, 1, 0, 1],
@@ -12,6 +14,7 @@ def test_feature_select_zero_threshold_keeps_all(tmp_path):
     assert list(out.columns) == ['a']
 
 
+@pytest.mark.unit
 def test_feature_select_high_threshold_drops_all(tmp_path):
     df = pd.DataFrame({
         'a': [0, 1, 0, 1],

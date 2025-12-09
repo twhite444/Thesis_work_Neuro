@@ -1,7 +1,9 @@
 import pandas as pd
+import pytest
 from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
 
 
+@pytest.mark.unit
 def test_featurize_and_standardize_smiles_column_missing(tmp_path):
     df = pd.DataFrame({'SMILES': ['CCO']})
     try:
@@ -11,6 +13,7 @@ def test_featurize_and_standardize_smiles_column_missing(tmp_path):
         assert "IsomericSMILES" in str(e)
 
 
+@pytest.mark.unit
 def test_featurize_and_standardize_runs(tmp_path, monkeypatch):
     # Provide small synthetic SMILES and monkeypatch mordred function to avoid heavy compute
     import src.neuro_foundation.pipeline.preprocess as pp
