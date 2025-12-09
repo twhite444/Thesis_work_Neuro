@@ -2,6 +2,9 @@
 """
 Full Pipeline Script - Run complete pipeline with stage caching
 
+Copyright (c) 2025 Tom White
+Licensed under the MIT License
+
 Usage:
     # Run full pipeline with default config
     python scripts/run_pipeline.py

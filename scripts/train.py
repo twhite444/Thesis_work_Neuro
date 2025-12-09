@@ -2,6 +2,9 @@
 """
 Train Script - Simple entry point for training models
 
+Copyright (c) 2025 Tom White
+Licensed under the MIT License
+
 Usage:
     # Train with default config
     python scripts/train.py

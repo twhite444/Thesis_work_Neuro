@@ -2,6 +2,9 @@
 """
 Cleanup Utility - Manage cached data and experiment outputs
 
+Copyright (c) 2025 Tom White
+Licensed under the MIT License
+
 Usage:
     # Show what would be deleted (dry run)
     python scripts/cleanup.py --dry-run
