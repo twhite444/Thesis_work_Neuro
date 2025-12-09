@@ -98,3 +98,6 @@ Thumbs.db
 !data/01_features/.gitkeep
 !data/02_processed/.gitkeep
 !data/03_splits/.gitkeep
+
+# Raw Pyrfume data (downloadable via scripts/download_pyrfume_data.py)
+data/00_raw/*.csv
