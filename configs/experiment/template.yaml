@@ -1,60 +1,133 @@
-# ==================================================================
-# EXPERIMENT TEMPLATE
-# ==================================================================
-# 🎓 STUDENTS: Copy this file to create your own experiments!
-#
-# How to use:
-# 1. Copy this file: cp template.yaml my_experiment.yaml
+# ==================================================================# ==================================================================
+
+# Experiment Template# EXPERIMENT TEMPLATE
+
+# ==================================================================# ==================================================================
+
+# Template for creating new experiments.# 🎓 STUDENTS: Copy this file to create your own experiments!
+
+# Copy this file and modify the settings as needed.#
+
+# Defaults are based on legacy code settings.# How to use:
+
+# ==================================================================# 1. Copy this file: cp template.yaml my_experiment.yaml
+
 # 2. Edit the settings below
-# 3. Run: python scripts/train.py experiment=my_experiment
+
+# Experiment name - creates a folder with this name in experiments/# 3. Run: python scripts/train.py experiment=my_experiment
+
+experiment_name: "my_experiment"# ==================================================================
+
+
+
+# Defaults - Don't modify this section# Give your experiment a descriptive name
+
+# These reference the main config files# This creates a folder: experiments/your_name_here/
+
+defaults:experiment_name: my_experiment_name  # ← CHANGE THIS!
+
+  - /model: model        # Use configs/model.yaml
+
+  - /data: data          # Use configs/data.yaml# Choose which configurations to use
+
+  - /preprocessing: preprocessing  # Use configs/preprocessing.yamldefaults:
+
+  - /training: training  # Use configs/training.yaml  - /model: medium_net  # ← TRY: small_net, medium_net, large_net
+
+  - _self_              # This file's settings override defaults  - /data: olfactory_default
+
+  - /preprocessing: pca_default  # ← TRY: none, pca_default, pca_aggressive, variance_only
+
+# Random seed for reproducibility  - /training: default  # ← TRY: quick_test, default, full_training
+
+seed: 42  - _self_  # Keep this line
+
+
+
+# ==================================================================# Random seed (change for different random initializations)
+
+# OVERRIDE SETTINGS BELOWseed: 42
+
 # ==================================================================
 
-# Give your experiment a descriptive name
-# This creates a folder: experiments/your_name_here/
-experiment_name: my_experiment_name  # ← CHANGE THIS!
+# You can override any setting from the main configs here.# ============================================================================
 
-# Choose which configurations to use
-defaults:
-  - /model: medium_net  # ← TRY: small_net, medium_net, large_net
-  - /data: olfactory_default
-  - /preprocessing: pca_default  # ← TRY: none, pca_default, pca_aggressive, variance_only
-  - /training: default  # ← TRY: quick_test, default, full_training
-  - _self_  # Keep this line
+# Only specify what you want to change from the defaults.# CUSTOMIZE BELOW (Optional - override defaults)
 
-# Random seed (change for different random initializations)
-seed: 42
+# ==================================================================# ============================================================================
 
-# ============================================================================
-# CUSTOMIZE BELOW (Optional - override defaults)
-# ============================================================================
 
-# Override specific model settings (optional)
-# model:
-#   architecture:
-#     dropout: 0.4  # Different dropout rate
-#   optimizer:
+
+# Example: Change model architecture# Override specific model settings (optional)
+
+# model:# model:
+
+#   architecture:#   architecture:
+
+#     hidden_layers: [256, 128, 64]#     dropout: 0.4  # Different dropout rate
+
+#     dropout: 0.3#   optimizer:
+
 #     learning_rate: 0.01  # Different learning rate
 
-# Override training settings (optional)
-# training:
-#   max_epochs: 150  # Different number of epochs
-#   early_stopping:
-#     patience: 20  # Different patience
+# Example: Change training epochs
 
-# Override data settings (optional)
-# data:
-#   batch_size: 128  # Larger batches
+# training:# Override training settings (optional)
 
-# Override preprocessing settings (optional)
+#   max_epochs: 100# training:
+
+#   early_stopping:#   max_epochs: 150  # Different number of epochs
+
+#     enabled: true#   early_stopping:
+
+#     patience: 15#     patience: 20  # Different patience
+
+
+
+# Example: Adjust data split# Override data settings (optional)
+
+# data:# data:
+
+#   train_test_split:#   batch_size: 128  # Larger batches
+
+#     test_size: 0.15
+
+#     val_size: 0.15# Override preprocessing settings (optional)
+
 # preprocessing:
-#   methods:
-#     - type: pca
-#       n_components: 75  # More components
 
-# ============================================================================
-# EXPERIMENT NOTES (for your records)
-# ============================================================================
-# Goal: [What are you testing?]
-# Hypothesis: [What do you expect?]
+# Example: Add PCA to preprocessing#   methods:
+
+# preprocessing:#     - type: pca
+
+#   methods:#       n_components: 75  # More components
+
+#     - type: variance_threshold
+
+#       threshold: 0.01# ============================================================================
+
+#     - type: scaling# EXPERIMENT NOTES (for your records)
+
+#       method: standard# ============================================================================
+
+#     - type: pca# Goal: [What are you testing?]
+
+#       n_components: 50# Hypothesis: [What do you expect?]
+
 # Changes from baseline: [What did you change?]
-# Results: [Fill in after running]
+
+# ==================================================================# Results: [Fill in after running]
+
+# NOTES
+# ==================================================================
+# This experiment will:
+# - Create output in: experiments/my_experiment/
+# - Use all default settings from configs/model.yaml, configs/data.yaml, etc.
+# - Any overrides specified above will replace the defaults
+#
+# To run this experiment:
+#   python scripts/train.py experiment=my_experiment
+#
+# To see all config settings:
+#   python scripts/train.py experiment=my_experiment --cfg job
+# ==================================================================

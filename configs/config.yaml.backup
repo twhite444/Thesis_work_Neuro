@@ -1,0 +1,152 @@
+# ============================================================================
+# Main Configuration File
+# ============================================================================
+# This file contains DEFAULT settings for all experiments.
+# Students: Don't edit this directly! Create experiment configs in:
+#   configs/experiment/your_experiment.yaml
+#
+# To override settings, create an experiment file that references this.
+# See: configs/experiment/template.yaml
+# ============================================================================
+
+# Experiment Metadata
+experiment_name: baseline  # Name for this run (will create folder)
+seed: 42  # Random seed for reproducibility
+
+# Paths Configuration
+paths:
+  project_root: "."  # Project root directory
+  data_root: "data"  # Data storage
+  output_dir: "experiments"  # Where results are saved
+  cache_dir: "data"  # Where cached data is stored
+
+# Defaults - These reference other config files
+# Students: Override these in your experiment configs
+defaults:
+  - model: medium_net  # Which model architecture to use
+  - data: olfactory_default  # Which dataset to use
+  - preprocessing: pca_default  # How to preprocess data
+  - training: default  # Training hyperparameters
+  - _self_  # This file's settings take precedence
+
+# Data Configuration (defaults, overridden by configs/data/*.yaml)
+data:
+  data_path: "data/00_raw/olfactory_v1.csv"  # Path to CSV file
+  target_column: "Target"  # Column name for prediction target
+  smiles_column: "SMILES"  # Column with molecular SMILES (optional)
+  feature_columns: null  # null = use all except target/smiles
+  
+  # Train/test splitting
+  train_test_split:
+    test_size: 0.2  # 20% for testing
+    random_state: ${seed}  # Use main seed
+    shuffle: true  # Shuffle before splitting
+  
+  # Data loading optimization
+  batch_size: 64  # Batch size for training
+  num_workers: 4  # Parallel data loading (0 = single thread)
+  pin_memory: true  # Faster GPU transfer
+  persistent_workers: true  # Keep workers alive between epochs
+
+# Preprocessing Configuration (defaults, overridden by configs/preprocessing/*.yaml)
+preprocessing:
+  enabled: true  # Set false to skip all preprocessing
+  cache: true  # Cache preprocessing results
+  
+  # Preprocessing steps (applied in order)
+  methods:
+    - type: variance_threshold  # Remove low-variance features
+      threshold: 0.01
+    
+    - type: scaling  # Standardize features
+      method: standard  # Options: 'standard', 'minmax', 'robust'
+    
+    - type: pca  # Dimensionality reduction
+      n_components: 50  # Or set 'variance_threshold: 0.95' for 95% variance
+      # Set to null to disable PCA
+
+# Model Configuration (defaults, overridden by configs/model/*.yaml)
+model:
+  type: feedforward  # Model type: 'feedforward', 'gnn' (future)
+  
+  architecture:
+    hidden_layers: [128, 64, 32]  # List of layer sizes
+    activation: relu  # Activation function
+    dropout: 0.3  # Dropout rate (0 = no dropout)
+    batch_norm: false  # Use batch normalization
+  
+  optimizer:
+    type: adam  # Optimizer: 'adam', 'sgd', 'adamw'
+    learning_rate: 0.001  # Learning rate
+    weight_decay: 0.0  # L2 regularization
+  
+  loss: mse  # Loss function: 'mse', 'mae'
+
+# Training Configuration (defaults, overridden by configs/training/*.yaml)
+training:
+  max_epochs: 100  # Maximum training epochs
+  
+  # Early stopping (saves time!)
+  early_stopping:
+    enabled: true  # Stop if no improvement
+    monitor: val_loss  # Metric to monitor
+    patience: 15  # Stop after N epochs without improvement
+    min_delta: 0.0001  # Minimum change to count as improvement
+    mode: min  # 'min' or 'max'
+  
+  # Checkpointing (save best models)
+  checkpointing:
+    enabled: true
+    monitor: val_loss
+    save_top_k: 3  # Keep top 3 models
+    mode: min
+  
+  # Hardware & Performance
+  accelerator: auto  # 'auto', 'gpu', 'cpu'
+  devices: 1  # Number of GPUs/CPUs to use
+  precision: 32  # Training precision: 32, 16 (mixed precision for speed)
+  
+  # Gradient optimization
+  gradient_clip_val: 1.0  # Clip gradients (null = no clipping)
+  accumulate_grad_batches: 1  # Gradient accumulation (1 = no accumulation)
+
+# Logging Configuration
+logging:
+  log_every_n_steps: 10  # Log metrics every N batches
+  enable_tensorboard: true  # Use TensorBoard logging
+  enable_wandb: false  # Use Weights & Biases (optional)
+  
+  # What to log
+  log_metrics:
+    - train_loss
+    - val_loss
+    - val_correlation  # Custom metric
+
+# Pipeline Stages (for full pipeline runs)
+pipeline:
+  stages:
+    feature_extraction:
+      enabled: true
+      cache: true
+    
+    preprocessing:
+      enabled: ${preprocessing.enabled}
+      cache: ${preprocessing.cache}
+    
+    training:
+      enabled: true
+      cache: false  # Don't cache models
+  
+  # Force recomputation
+  force_recompute: false  # Set true to ignore cache
+  recompute_stages: []  # List specific stages to recompute
+
+# Hydra Configuration (don't change unless you know what you're doing)
+hydra:
+  run:
+    dir: ${paths.output_dir}/${experiment_name}  # Output directory
+  sweep:
+    dir: ${paths.output_dir}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  job:
+    chdir: false  # Don't change working directory

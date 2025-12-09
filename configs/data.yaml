@@ -1,0 +1,130 @@
+# ==================================================================
+# Data Configuration
+# ==================================================================
+# Single data config with all options explained.
+# Defaults are based on legacy code settings.
+# ==================================================================
+
+# Data path - CSV file with features
+# Legacy default: output_data/selected_features.csv
+# For new projects: data/00_raw/olfactory_v1.csv
+data_path: "data/00_raw/olfactory_v1.csv"
+
+# Target column name in the CSV
+# The column to predict
+# Legacy default: depends on dataset
+target_column: "Target"
+
+# SMILES column (optional)
+# Column containing molecular SMILES strings
+# Set to null if not present in data
+# Legacy default: "IsomericSMILES"
+smiles_column: "SMILES"
+
+# Feature columns to use
+# null = use all columns except target and SMILES
+# List of column names = use only specified columns
+feature_columns: null
+
+# Train/Test Split Configuration
+train_test_split:
+  # Fraction of data to use for testing
+  # Legacy default: 0.2 (20% test, 80% train)
+  # Options: 0.1 (10%), 0.2 (20%), 0.3 (30%)
+  test_size: 0.2
+  
+  # Fraction of training data to use for validation
+  # Legacy default: 0.2 (20% of train becomes validation)
+  # Results in 64% train, 16% val, 20% test
+  val_size: 0.2
+  
+  # Random seed for reproducibility
+  # Use ${seed} to inherit from main config
+  random_state: ${seed}
+  
+  # Shuffle data before splitting
+  # Legacy default: true
+  shuffle: true
+  
+  # Stratified splitting (for classification only)
+  # false for regression tasks
+  stratify: false
+
+# DataLoader Configuration
+# Settings for PyTorch DataLoader
+batch_size: 32  # Legacy default: 32 (from manual_training_visualisation.py)
+
+# Number of worker processes for data loading
+# Legacy default: 0 (single-threaded, safest)
+# Options:
+#   - 0:  Single-threaded (safest, legacy default)
+#   - 4:  4 parallel workers (faster, use for large datasets)
+#   - 8:  8 parallel workers (fastest, may cause issues on some systems)
+num_workers: 0
+
+# Pin memory for faster GPU transfer
+# Legacy default: false (not used in original code)
+# true = faster when using GPU, false = more stable
+pin_memory: false
+
+# Keep workers alive between epochs
+# Only applies if num_workers > 0
+# true = faster, false = more memory efficient
+persistent_workers: false
+
+# Data Quality Checks
+# Automatically applied when loading data
+check_nan: true   # Check for NaN values
+check_inf: true   # Check for infinite values
+check_alignment: false  # Check X-y alignment (for separate X/y files)
+
+# Metadata
+description: "Standard data configuration based on legacy code"
+notes: |
+  Legacy data pipeline:
+  1. Load molecules from pyrfume
+  2. Generate Mordred features from SMILES
+  3. Preprocess and clean data
+  4. Split into train/test (80/20)
+  5. Use batch_size=32 for training
+
+# ==================================================================
+# USAGE EXAMPLES
+# ==================================================================
+#
+# Legacy default (single CSV with all columns):
+#   data_path: "data/00_raw/olfactory_v1.csv"
+#   target_column: "Target"
+#   smiles_column: "SMILES"
+#   feature_columns: null
+#   batch_size: 32
+#   num_workers: 0
+#
+# Quick test (small batches):
+#   data_path: "data/00_raw/olfactory_v1.csv"
+#   target_column: "Target"
+#   batch_size: 16
+#   train_test_split:
+#     test_size: 0.3
+#
+# Large dataset (parallel loading):
+#   data_path: "data/00_raw/olfactory_v1.csv"
+#   target_column: "Target"
+#   batch_size: 64
+#   num_workers: 4
+#   pin_memory: true
+#
+# Select specific features:
+#   data_path: "data/00_raw/olfactory_v1.csv"
+#   target_column: "Target"
+#   feature_columns:
+#     - "feature1"
+#     - "feature2"
+#     - "feature3"
+#
+# Preprocessed data (no SMILES):
+#   data_path: "data/02_processed/selected_features.csv"
+#   target_column: "Target"
+#   smiles_column: null
+#   feature_columns: null
+# ==================================================================

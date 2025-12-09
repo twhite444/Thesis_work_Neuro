@@ -1,0 +1,144 @@
+# ==================================================================
+# Training Configuration
+# ==================================================================
+# Single training config with all options explained.
+# Defaults are based on legacy code settings.
+# ==================================================================
+
+# Maximum number of training epochs
+# Legacy default: 50 (from manual_training_visualisation.py)
+# Options:
+#   - 20:   Quick test
+#   - 50:   Standard training (legacy default)
+#   - 100:  Extended training
+#   - 200:  Full training for best results
+max_epochs: 50
+
+# Early Stopping - Stop training if validation loss stops improving
+early_stopping:
+  # Enable early stopping
+  # Legacy default: false (not used in original code, but recommended)
+  enabled: true
+  
+  # Metric to monitor
+  # Options: val_loss, train_loss, val_accuracy
+  monitor: val_loss
+  
+  # Number of epochs to wait before stopping
+  # Legacy default: Not used, recommended: 10-20
+  # Stops if no improvement for this many epochs
+  patience: 10
+  
+  # Minimum change to qualify as improvement
+  # Smaller values = more sensitive to small improvements
+  min_delta: 0.0001
+  
+  # Mode: 'min' for loss, 'max' for accuracy
+  mode: min
+
+# Model Checkpointing - Save best models during training
+checkpointing:
+  # Enable model checkpointing
+  # Legacy default: false (not used in original code)
+  enabled: true
+  
+  # Metric to monitor for saving best model
+  monitor: val_loss
+  
+  # Number of best models to save
+  # 1 = save only the best, 3 = save top 3 models
+  save_top_k: 3
+  
+  # Mode: 'min' for loss, 'max' for accuracy
+  mode: min
+
+# Hardware Configuration
+# Accelerator type for training
+# Legacy default: cpu (no GPU used in original code)
+# Options:
+#   - auto: Automatically detect and use GPU if available
+#   - cpu:  Use CPU only (legacy default)
+#   - gpu:  Force GPU usage
+#   - mps:  Apple Silicon GPU (for M1/M2/M3 Macs)
+accelerator: auto
+
+# Number of devices to use
+# 1 = single device, 'auto' = use all available
+devices: 1
+
+# Precision for training
+# Legacy default: 32 (full precision)
+# Options:
+#   - 32: Full precision (legacy default, most stable)
+#   - 16: Half precision (faster, less memory, slightly less accurate)
+precision: 32
+
+# Gradient Clipping
+# Prevents exploding gradients by clipping gradient norm
+# Legacy default: Not used (0.0 = no clipping)
+# Typical range: 0.5 to 5.0
+# 1.0 is a good starting point if you have gradient issues
+gradient_clip_val: 0.0
+
+# Gradient Accumulation
+# Accumulate gradients over multiple batches before updating
+# Legacy default: 1 (no accumulation)
+# Use >1 to simulate larger batch sizes with limited memory
+accumulate_grad_batches: 1
+
+# GPU-specific settings (ignored if using CPU)
+use_gpu: true
+
+# Validation Metrics to Compute
+# Metrics calculated during validation
+val_metrics:
+  - mse          # Mean Squared Error
+  - mae          # Mean Absolute Error
+  - r2           # R-squared score
+  - pearson_corr # Pearson correlation
+
+# Training Metadata
+description: "Standard training configuration based on legacy code"
+notes: |
+  Legacy training (manual_training_visualisation.py):
+  - Epochs: 50
+  - Batch size: 32 (defined in data config)
+  - Optimizer: Adam with lr=0.001 (defined in model config)
+  - No early stopping (trains full 50 epochs)
+  - No checkpointing (saves final model only)
+
+# ==================================================================
+# USAGE EXAMPLES
+# ==================================================================
+#
+# Quick test (minimal training):
+#   max_epochs: 20
+#   early_stopping:
+#     enabled: true
+#     patience: 5
+#
+# Legacy default (50 epochs, no early stopping):
+#   max_epochs: 50
+#   early_stopping:
+#     enabled: false
+#
+# Standard with early stopping (recommended):
+#   max_epochs: 100
+#   early_stopping:
+#     enabled: true
+#     patience: 10
+#
+# Full training with checkpointing:
+#   max_epochs: 200
+#   early_stopping:
+#     enabled: true
+#     patience: 20
+#   checkpointing:
+#     enabled: true
+#     save_top_k: 3
+#
+# GPU training with mixed precision:
+#   accelerator: gpu
+#   precision: 16
+#   max_epochs: 100
+# ==================================================================

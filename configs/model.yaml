@@ -1,0 +1,94 @@
+# ==================================================================
+# Model Configuration
+# ==================================================================
+# Single model config with all options explained.
+# Defaults are based on legacy code settings.
+# ==================================================================
+
+name: neural_network
+type: feedforward
+
+# Network Architecture
+architecture:
+  # Hidden layer sizes (list of integers)
+  # Legacy default: [128, 64] - Two hidden layers with 128 and 64 neurons
+  # Options:
+  #   - Small:  [64, 32]        # Fast training, lower capacity
+  #   - Medium: [128, 64, 32]   # Balanced (good starting point)
+  #   - Large:  [256, 128, 64]  # High capacity, slower training
+  hidden_layers: [128, 64]
+  
+  # Activation function for hidden layers
+  # Legacy default: relu
+  # Options: relu, tanh, sigmoid, leaky_relu, elu
+  activation: relu
+  
+  # Dropout rate for regularization (0.0 = no dropout, 1.0 = drop all)
+  # Legacy default: 0.5 (from manual_training_visualisation.py)
+  # Typical range: 0.2 to 0.5
+  # Higher values = more regularization = less overfitting
+  dropout: 0.5
+  
+  # Batch normalization after each hidden layer
+  # Legacy default: false (not used in original code)
+  # Options: true, false
+  # true = helps with training stability and speed
+  batch_norm: false
+
+# Loss Function
+# Legacy default: mse (Mean Squared Error for regression)
+# Options:
+#   - mse:   Mean Squared Error (standard for regression)
+#   - mae:   Mean Absolute Error (less sensitive to outliers)
+#   - huber: Huber loss (compromise between mse and mae)
+loss: mse
+
+# Optimizer Configuration
+optimizer:
+  # Optimizer type
+  # Legacy default: adam
+  # Options: adam, sgd, adamw, rmsprop
+  type: adam
+  
+  # Learning rate - how fast the model learns
+  # Legacy default: 0.001 (standard Adam learning rate)
+  # Typical range: 0.0001 to 0.01
+  # Smaller = slower but more stable training
+  learning_rate: 0.001
+  
+  # L2 regularization weight (prevents overfitting)
+  # Legacy default: 0.0 (no weight decay in original code)
+  # Typical range: 0.0 to 0.001
+  # Higher values = more regularization
+  weight_decay: 0.0
+
+# Model Metadata
+description: "Standard feedforward neural network based on legacy code"
+expected_performance: "Fast training (~30-60 seconds), moderate capacity"
+
+# ==================================================================
+# USAGE EXAMPLES
+# ==================================================================
+# 
+# Quick test (fast training):
+#   hidden_layers: [64, 32]
+#   dropout: 0.3
+#   learning_rate: 0.001
+#
+# Standard baseline (legacy default):
+#   hidden_layers: [128, 64]
+#   dropout: 0.5
+#   learning_rate: 0.001
+#
+# High capacity (for complex problems):
+#   hidden_layers: [256, 128, 64]
+#   dropout: 0.5
+#   batch_norm: true
+#   learning_rate: 0.0005
+#
+# Regularized (prevent overfitting):
+#   hidden_layers: [128, 64]
+#   dropout: 0.6
+#   weight_decay: 0.0001
+#   learning_rate: 0.001
+# ==================================================================
