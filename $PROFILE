@@ -1,0 +1,10 @@
+# Create a function to activate conda environment
+function Activate-Pyrfume {
+    C:\ProgramData\Anaconda3\Scripts\activate.bat PyrfumeThesis
+}
+
+# Create an alias for the function
+Set-Alias -Name pyrfume -Value Activate-Pyrfume
+
+# Add the function to the current session
+. $PROFILE 

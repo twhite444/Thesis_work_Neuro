@@ -4,37 +4,64 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-from pyrfume import load_data
-from scipy.ndimage import gaussian_filter, binary_fill_holes, label, binary_dilation, binary_erosion
+#from pyrfume import load_data
+import pyrfume
+from scipy.ndimage import gaussian_filter, label, binary_dilation, binary_erosion
 
 def load_maps_and_apply_mask(coverage_threshold=1.0):
     """Load activity maps, apply a global mask based on coverage threshold."""
     # Load directory data
     directory = pd.read_csv('output_data/behavior_data.csv')
-    directory['CID'] = directory.index.map(lambda x: str(x).split('_')[0]).astype('int64')
+    print(directory.head())
+    directory['CID'] = directory['Stimulus'].map(lambda x: str(x).split('_')[0]).astype('int64')
+    print(directory.head())
     directory = directory[directory['CID'] > 0]
+    print(directory.head())
     selected_features = pd.read_csv('output_data/selected_features.csv')
 
     molecules_raw = pd.read_csv('output_data/molecules_raw.csv')
-    selected_features['CID'] = molecules_raw['CID']
-    selected_features.set_index('CID', inplace=True, drop=True)
+    selected_features['CID'] = molecules_raw['CID'].unique()
+    #selected_features.set_index('CID', inplace=True, drop=True)
 
-    selected_cids = selected_features.index.unique()
+    selected_cids = selected_features['CID']
 
     directory = directory[directory['CID'].isin(selected_cids)]
     
     all_maps = []
     valid_counts = None
     
-    for idx, row in directory.iterrows():
-        map_path = os.path.join('leon/', row['Activity Map Path'])
-        activity_map = load_data(map_path).to_numpy()
-
-        if valid_counts is None:
-            valid_counts = np.zeros_like(activity_map, dtype=int)
+    for cid in selected_cids:
+        maps = []
+        mean_map = None
+        for _, row in directory[directory['CID'] == cid].iterrows():
+            map_path = os.path.join('leon/', row['Activity Map Path'])
+            try:
+                activity_map = pyrfume.load_data(map_path).to_numpy()
+            except Exception as e:
+                print(f"Error loading map for CID {cid} at {map_path}: {e}")
+                continue
+            
+            maps.append(activity_map)
         
-        valid_counts += ~np.isnan(activity_map)
-        all_maps.append(np.nan_to_num(activity_map, nan=0))  # Replace NaN with zero for PCA
+        if len(maps) > 1:
+            mean_map = np.nanmean(maps, axis=0)
+        elif len(maps) == 1:
+            mean_map = maps[0]
+        else:
+            continue
+        
+        try:
+            all_maps.append(mean_map)
+        except:
+            #print(f"Error with CID {cid}")
+            continue
+        if valid_counts is None:
+            valid_counts = ~np.isnan(mean_map)
+        else:
+            valid_counts += ~np.isnan(mean_map)
+
+    # Replace NaN values with 0 in all maps
+    all_maps = [np.nan_to_num(map, nan=0) for map in all_maps]
     
     # Create global mask
     global_mask = valid_counts >= int(coverage_threshold * len(all_maps))
@@ -50,6 +77,8 @@ def load_maps_and_apply_mask(coverage_threshold=1.0):
 
     # Apply the global mask to each map
     masked_maps = [map * refined_global_mask for map in all_maps]
+
+
     
     return masked_maps, refined_global_mask
 
@@ -80,7 +109,7 @@ def visualize_pca_components(principal_components, pca, global_mask):
         ax.set_title(f'PCA Component {i+1}')
         fig.colorbar(img, ax=ax)
     plt.tight_layout()
-    plt.savefig(os.path.join('output_data', 'global_mask.png'))
+    plt.savefig(os.path.join('output_data', 'top_3_components.png'))
 
     plt.show()
 
@@ -99,7 +128,7 @@ def main():
     visualize_pca_components(principal_components, pca, global_mask)
     # Save the PCA transformed data to a CSV file
     pca_df = pd.DataFrame(principal_components, columns=[f'PC{i+1}' for i in range(principal_components.shape[1])])
-    pca_df.to_csv('pca_transformed_data.csv', index=False)
+    pca_df.to_csv('output_data/pca_transformed_data.csv', index=False)
 
 def temporary_main():
     masked_maps, global_mask = load_maps_and_apply_mask()
