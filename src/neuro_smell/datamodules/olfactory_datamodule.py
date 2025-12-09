@@ -94,8 +94,12 @@ class OlfactoryDataModule(pl.LightningDataModule):
         self.output_dim = y.shape[1] if len(y.shape) > 1 else 1
         
         # Update config with dimensions (for model building)
+        # Allow adding new keys to config
+        from omegaconf import OmegaConf
+        OmegaConf.set_struct(self.config, False)
         self.config.data.input_dim = self.input_dim
         self.config.data.output_dim = self.output_dim
+        OmegaConf.set_struct(self.config, True)
         
         print(f"📊 Features: {self.input_dim}, Target: {self.output_dim}")
         

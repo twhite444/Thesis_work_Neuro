@@ -24,7 +24,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Learning
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pathlib import Path
 from typing import Optional, Dict, Any
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 import pandas as pd
 import numpy as np
 
@@ -53,7 +53,7 @@ class TrainingStage:
         self.config = config
         
         # Paths
-        self.output_dir = Path(config.paths.outputs) / config.experiment_name
+        self.output_dir = Path(config.paths.output_dir) / config.experiment_name
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Components (initialized in train())
@@ -144,9 +144,11 @@ class TrainingStage:
         print(f"   Val size: {data_info['val_size']}")
         print(f"   Test size: {data_info['test_size']}")
         
-        # Update config with data dimensions
+        # Update config with data dimensions (temporarily disable struct mode)
+        OmegaConf.set_struct(self.config, False)
         self.config.model.input_dim = data_info['input_dim']
         self.config.model.output_dim = data_info['output_dim']
+        OmegaConf.set_struct(self.config, True)
         
         # Create model
         print(f"\n🧠 Creating model...")
