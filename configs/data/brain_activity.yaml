@@ -1,0 +1,43 @@
+# Brain Activity Prediction Configuration
+# 
+# Predicts brain PCA scores from molecular features
+
+# Data paths
+data_path: "data/02_processed/selected_features.csv"  # Molecular features (X)
+brain_pca_path: "data/02_processed/brain_pca_scores.csv"  # Brain PCA targets (y)
+
+# Data structure
+cid_column: "CID"  # Column/index name for molecule identifier
+target_type: "brain_pca"  # Type of target (used to identify this config)
+
+# Features
+# Uses all numeric columns from molecular features file (already preprocessed)
+feature_columns: null  # null = use all columns
+
+# Train/validation/test split
+train_test_split:
+  test_size: 0.2  # 20% for final test
+  val_size: 0.2   # 20% of remaining train for validation
+  random_state: 42
+  shuffle: true
+  stratify: false  # No stratification for regression
+
+# DataLoader settings
+batch_size: 32
+num_workers: 0  # 0 for debugging, increase to 4+ for faster training
+pin_memory: true  # Faster GPU transfer
+
+# Data validation
+check_alignment: true  # Verify X-y CID alignment
+check_nan: true  # Check for NaN values
+check_inf: true  # Check for infinite values
+
+# Metadata
+description: "Molecular features → Brain PCA scores (287 molecules × 5 PC targets)"
+notes: |
+  This configuration loads:
+  - X: Molecular features (287 × 149) - standardized Mordred descriptors
+  - y: Brain PCA scores (287 × 5) - first 5 principal components
+  
+  Data is automatically aligned by CID using prepare_training_data() function.
+  Expected performance: R² ≈ 0.506 (thesis benchmark)

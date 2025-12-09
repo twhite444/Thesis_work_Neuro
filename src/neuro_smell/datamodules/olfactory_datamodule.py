@@ -70,24 +70,31 @@ class OlfactoryDataModule(pl.LightningDataModule):
         Args:
             stage: 'fit', 'validate', 'test', or 'predict'
         """
-        # Load data
-        data_path = Path(self.config.data.data_path)
+        # Check if using brain PCA target mode
+        target_type = self.config.data.get('target_type', None)
         
-        if not data_path.exists():
-            raise FileNotFoundError(
-                f"Data file not found: {data_path}\n"
-                f"Please place your data file at this location or update the path in your config."
-            )
-        
-        print(f"\n📂 Loading data from: {data_path}")
-        df = pd.read_csv(data_path)
-        print(f"✅ Loaded {len(df)} samples with {len(df.columns)} columns")
-        
-        # Validate data
-        self._validate_data(df)
-        
-        # Extract features and target
-        X, y = self._prepare_features_target(df)
+        if target_type == 'brain_pca':
+            # Load molecular features and brain PCA targets separately
+            X, y = self._load_brain_pca_data()
+        else:
+            # Standard single CSV loading
+            data_path = Path(self.config.data.data_path)
+            
+            if not data_path.exists():
+                raise FileNotFoundError(
+                    f"Data file not found: {data_path}\n"
+                    f"Please place your data file at this location or update the path in your config."
+                )
+            
+            print(f"\n📂 Loading data from: {data_path}")
+            df = pd.read_csv(data_path)
+            print(f"✅ Loaded {len(df)} samples with {len(df.columns)} columns")
+            
+            # Validate data
+            self._validate_data(df)
+            
+            # Extract features and target
+            X, y = self._prepare_features_target(df)
         
         # Store dimensions for model
         self.input_dim = X.shape[1]
@@ -140,6 +147,55 @@ class OlfactoryDataModule(pl.LightningDataModule):
         self.test_dataset = TensorDataset(X_test, y_test)
         
         print("✅ Data setup complete!\n")
+    
+    def _load_brain_pca_data(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Load molecular features and brain PCA targets using prepare_training_data().
+        
+        Returns:
+            X: Molecular features [n_molecules, n_features]
+            y: Brain PCA scores [n_molecules, n_pca_components]
+        """
+        from ..stages.preprocessing import prepare_training_data
+        
+        # Load molecular features
+        mol_features_path = Path(self.config.data.data_path)
+        if not mol_features_path.exists():
+            raise FileNotFoundError(f"Molecular features not found: {mol_features_path}")
+        
+        print(f"\n📂 Loading molecular features from: {mol_features_path}")
+        mol_df = pd.read_csv(mol_features_path, index_col=0)
+        
+        # Load brain PCA targets
+        brain_pca_path = Path(self.config.data.brain_pca_path)
+        if not brain_pca_path.exists():
+            raise FileNotFoundError(f"Brain PCA scores not found: {brain_pca_path}")
+        
+        print(f"📂 Loading brain PCA targets from: {brain_pca_path}")
+        
+        # Use prepare_training_data to align X and y
+        print(f"🔗 Aligning molecular features with brain PCA targets...")
+        X, y, common_cids, metadata = prepare_training_data(
+            molecular_features_df=mol_df,
+            brain_pca_scores_path=str(brain_pca_path),
+            cid_column=self.config.data.get('cid_column', 'CID')
+        )
+        
+        print(f"✅ Data aligned successfully!")
+        print(f"   Molecules: {len(common_cids)}")
+        print(f"   Features (X): {X.shape}")
+        print(f"   Targets (y): {y.shape}")
+        
+        # Optional: Check for issues
+        if self.config.data.get('check_nan', True):
+            if np.isnan(X).any() or np.isnan(y).any():
+                raise ValueError("NaN values detected in aligned data!")
+        
+        if self.config.data.get('check_inf', True):
+            if np.isinf(X).any() or np.isinf(y).any():
+                raise ValueError("Infinite values detected in aligned data!")
+        
+        return X, y
     
     def _validate_data(self, df: pd.DataFrame):
         """Validate that data meets requirements"""
