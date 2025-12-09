@@ -119,15 +119,36 @@ class BrainActivityProcessor:
             raise FileNotFoundError(f"Behavior CSV not found: {behavior_csv}")
         
         behavior = pd.read_csv(behavior_csv, index_col=0)
-        logger.info(f"Loaded {len(behavior)} stimulus presentations")
+        logger.info(f"Loaded {len(behavior)} total stimulus presentations")
         
         # Stimulus is the index - extract CID from it (format: "{CID}_{rep}")
         # Handle both string and numeric CIDs
         behavior['CID'] = behavior.index.astype(str).str.split('_').str[0]
         behavior['Stimulus'] = behavior.index
         
+        # CRITICAL: Filter out invalid stimuli (controls with negative CIDs)
+        # Get valid CIDs from molecules DataFrame
+        valid_molecules_cids = set(molecules_df[cid_column].astype(str))
+        behavior['valid'] = behavior['CID'].isin(valid_molecules_cids)
+        
+        valid_stimuli = behavior[behavior['valid']].copy()
+        invalid_stimuli = behavior[~behavior['valid']]
+        
+        if len(invalid_stimuli) > 0:
+            logger.info(
+                f"Filtering out {len(invalid_stimuli)} invalid stimuli "
+                f"(controls/blanks with negative CIDs)"
+            )
+            invalid_cids = invalid_stimuli['CID'].value_counts()
+            logger.debug(f"Invalid CIDs: {dict(invalid_cids)}")
+        
+        logger.info(f"Processing {len(valid_stimuli)} valid stimulus presentations")
+        
+        # Use only valid stimuli from here on
+        behavior = valid_stimuli
+        
         unique_cids = behavior['CID'].nunique()
-        logger.info(f"Found {unique_cids} unique CIDs in behavior data")
+        logger.info(f"Found {unique_cids} unique valid CIDs in behavior data")
         
         # Load all brain maps grouped by CID
         brain_maps_by_cid: Dict[str, List[np.ndarray]] = {}

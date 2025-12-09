@@ -4,9 +4,9 @@ n_molecules: 287
 n_voxels: 3397
 n_components_computed: 50
 n_targets_used: 5
-variance_explained_by_targets: 34.547254700148144
-pc1_variance: 13.279589890606273
-pc2_variance: 8.752521273409995
-pc3_variance: 5.745808621280625
-pc4_variance: 4.449051901657572
-pc5_variance: 2.320283013193678
+variance_explained_by_targets: 34.547254687919256
+pc1_variance: 13.279589890606236
+pc2_variance: 8.752521273408883
+pc3_variance: 5.745808621261318
+pc4_variance: 4.44905190124238
+pc5_variance: 2.320283001400441
