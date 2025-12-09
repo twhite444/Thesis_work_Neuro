@@ -1,0 +1,30 @@
+# @package _global_
+# Test Custom Experiment Configuration
+# This tests Hydra's config composition system
+
+defaults:
+  - override /model: medium_net
+  - override /preprocessing: pca_aggressive
+  - override /training: quick_test
+
+# Experiment overrides
+experiment_name: "test_custom"
+
+# Model tweaks
+model:
+  architecture:
+    dropout: 0.5  # Higher dropout for regularization
+
+# Training tweaks  
+training:
+  max_epochs: 10
+  early_stopping:
+    patience: 5
+
+# Data tweaks
+data:
+  data_path: data/00_raw/test_data.csv
+  target_column: olfactory_intensity
+  smiles_column: null
+  batch_size: 32
+  num_workers: 0
