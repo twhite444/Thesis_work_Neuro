@@ -1,25 +1,29 @@
 # ==================================================================
-# Data Configuration
-# ==================================================================
-# Single data config with all options explained.
-# Defaults are based on legacy code settings.
-# ==================================================================
+# Data configuration (canonical merged dataset)
+dataset_name: olfactory
+data_path: data/02_processed/features_and_targets.csv
+# If using descriptors-only CSVs, set this to the SMILES/identifier column. For merged dataset, leave null.
+smiles_column: null
+# Single target fallback; prefer `target_columns` for multi-target setups.
+target_column: PC1
+# Multi-target list; when provided, overrides `target_column`.
+target_columns: [PC1, PC2, PC3, PC4, PC5]
 
 # Data path - CSV file with features
 # Legacy default: output_data/selected_features.csv
 # For new projects: data/00_raw/olfactory_v1.csv
-data_path: "data/00_raw/olfactory_v1.csv"
 
 # Target column name in the CSV
 # The column to predict
 # Legacy default: depends on dataset
-target_column: "Target"
+# Single-target column (optional if using multi-target)
+
+# Multi-target columns (optional)
 
 # SMILES column (optional)
 # Column containing molecular SMILES strings
 # Set to null if not present in data
 # Legacy default: "IsomericSMILES"
-smiles_column: "SMILES"
 
 # Feature columns to use
 # null = use all columns except target and SMILES

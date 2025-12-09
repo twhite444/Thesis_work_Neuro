@@ -199,12 +199,21 @@ class OlfactoryDataModule(pl.LightningDataModule):
     
     def _validate_data(self, df: pd.DataFrame):
         """Validate that data meets requirements"""
-        target_col = self.config.data.target_column
+        # Support single or multiple target columns
+        target_cols_cfg = self.config.data.get('target_columns', None)
+        target_col = self.config.data.get('target_column', None)
+        if target_cols_cfg is not None and isinstance(target_cols_cfg, (list, tuple)) and len(target_cols_cfg) > 0:
+            target_cols = list(target_cols_cfg)
+        elif target_col is not None:
+            target_cols = [target_col]
+        else:
+            raise ValueError("No target column(s) specified. Set `data.target_column` or `data.target_columns` in config.")
         
-        # Check target column exists
-        if target_col not in df.columns:
+        # Check target columns exist
+        missing_targets = [c for c in target_cols if c not in df.columns]
+        if missing_targets:
             raise ValueError(
-                f"Target column '{target_col}' not found in data.\n"
+                f"Target column(s) not found: {missing_targets}.\n"
                 f"Available columns: {list(df.columns)}"
             )
         
@@ -238,10 +247,35 @@ class OlfactoryDataModule(pl.LightningDataModule):
             X: Feature array [n_samples, n_features]
             y: Target array [n_samples] or [n_samples, n_targets]
         """
-        target_col = self.config.data.target_column
+        # Determine target columns (single or multi)
+        # Try reading targets from config; if absent, auto-detect common PC columns in the dataframe
+        target_cols_cfg = None
+        target_col_single = None
+        try:
+            target_cols_cfg = self.config.data.get('target_columns', None)
+            target_col_single = self.config.data.get('target_column', None)
+        except Exception:
+            # In case DictConfig get isn't available due to struct constraints
+            target_cols_cfg = self.config.data.target_columns if 'target_columns' in self.config.data else None
+            target_col_single = self.config.data.target_column if 'target_column' in self.config.data else None
+        # Precedence: if target_columns is provided and non-empty, ignore target_column
+        if isinstance(target_cols_cfg, (list, tuple)) and len(target_cols_cfg) > 0:
+            target_cols = list(target_cols_cfg)
+        elif isinstance(target_cols_cfg, list) and len(target_cols_cfg) == 0:
+            # explicit empty list means use single target if provided
+            target_cols = [target_col_single] if target_col_single is not None else []
+        elif target_cols_cfg is None and target_col_single is not None:
+            target_cols = [target_col_single]
+        else:
+            # Fallback: auto-detect PCA target columns if present in data
+            candidate_targets = [c for c in ['PC1','PC2','PC3','PC4','PC5'] if c in df.columns]
+            if candidate_targets:
+                target_cols = candidate_targets
+            else:
+                raise ValueError("No target column(s) specified. Set `data.target_column` or `data.target_columns` in config, and ensure target columns exist in the CSV.")
         
         # Columns to exclude
-        exclude_cols = [target_col]
+        exclude_cols = list(target_cols)
         if self.config.data.get('smiles_column'):
             exclude_cols.append(self.config.data.smiles_column)
         if self.config.data.get('exclude_columns'):
@@ -254,9 +288,13 @@ class OlfactoryDataModule(pl.LightningDataModule):
             all_numeric = df.select_dtypes(include=[np.number]).columns
             feature_cols = [col for col in all_numeric if col not in exclude_cols]
         
-        # Extract features and target
+        # Extract features and targets
+        print(f"🔧 Using target columns: {target_cols}")
         X = df[feature_cols].values.astype(np.float32)
-        y = df[target_col].values.astype(np.float32)
+        if len(target_cols) == 1:
+            y = df[target_cols[0]].values.astype(np.float32)
+        else:
+            y = df[target_cols].values.astype(np.float32)
         
         return X, y
     
