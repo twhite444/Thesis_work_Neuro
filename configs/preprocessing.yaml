@@ -11,44 +11,17 @@ enabled: true
 # Applied in the order listed below
 methods:
   # 1. Variance Threshold - Remove features with low variance
-  #    Legacy default: threshold=1.0 (from select_features function)
   - type: variance_threshold
-    # Minimum variance required to keep a feature
-    # Legacy default: 1.0
-    # Options:
-    #   - 0.0:  Keep all features (no filtering)
-    #   - 0.01: Remove near-constant features (minimal filtering)
-    #   - 1.0:  Remove low-variance features (legacy default)
-    #   - 2.0:  Aggressive filtering (keep only high-variance features)
     threshold: 1.0
   
   # 2. Scaling - Standardize features to zero mean and unit variance
-  #    Legacy default: StandardScaler (always applied in legacy code)
   - type: scaling
-    # Scaling method
-    # Legacy default: standard (StandardScaler)
-    # Options:
-    #   - standard: Zero mean, unit variance (z-score normalization)
-    #   - minmax:   Scale to [0, 1] range
-    #   - robust:   Use median and IQR (robust to outliers)
     method: standard
-  
-  # 3. PCA - Dimensionality reduction (Optional)
-  #    Legacy default: NOT USED in original basic_neural_pipeline.py
-  #    Can be enabled for dimensionality reduction if needed
+
+  # PCA on features is disabled by default to preserve signal.
+  # To enable later, add a method block like below in an experiment override:
   # - type: pca
-  #   # Number of principal components to keep
-  #   # Options:
-  #   #   - Integer (e.g., 50): Keep exactly 50 components
-  #   #   - Float 0-1 (e.g., 0.95): Keep components explaining 95% variance
   #   n_components: 50
-  #   
-  #   # Whether to apply variance threshold before PCA
-  #   variance_threshold_before_pca: true
-  #   
-  #   # Mask for selecting voxels (brain imaging specific)
-  #   # null = use all features
-  #   mask_path: null
 
 # Caching
 # Cache preprocessed data to speed up subsequent runs

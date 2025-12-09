@@ -70,15 +70,6 @@ def main():
     logger.info("\n2. Loading molecules...")
     molecules_df = pd.read_csv(molecules_csv)
     logger.info(f"Loaded {len(molecules_df)} molecules")
-    logger.info(f"Columns: {molecules_df.columns.tolist()}")
-    
-    # Check if CID column exists
-    if 'CID' not in molecules_df.columns:
-        logger.error("❌ 'CID' column not found in molecules_raw.csv")
-        logger.info(f"Available columns: {molecules_df.columns.tolist()}")
-        return 1
-    
-    logger.info(f"Unique CIDs: {molecules_df['CID'].nunique()}")
     
     # Initialize processor
     logger.info("\n3. Initializing BrainActivityProcessor...")
@@ -98,20 +89,8 @@ def main():
             cid_column='CID'
         )
         
-        logger.info(f"✅ Averaged brain maps: {len(averaged_maps_df)} molecules")
-        logger.info(f"Brain map shape: {averaged_maps_df['brain_map'].iloc[0].shape}")
-        logger.info(
-            f"Repetitions per molecule: "
-            f"mean={averaged_maps_df['n_reps'].mean():.2f}, "
-            f"median={averaged_maps_df['n_reps'].median():.0f}, "
-            f"max={averaged_maps_df['n_reps'].max()}"
-        )
-        
-        # Show examples of high-repetition molecules
-        high_rep = averaged_maps_df.nlargest(5, 'n_reps')
-        logger.info("\nTop 5 molecules by repetitions (likely concentration series):")
-        for _, row in high_rep.iterrows():
-            logger.info(f"  CID {row['CID']}: {row['n_reps']} repetitions")
+        logger.info(f"✅ Processed {len(averaged_maps_df)} molecules")
+        logger.info(f"✅ Brain maps averaged by CID")
         
     except Exception as e:
         logger.error(f"❌ Error loading brain maps: {e}")
@@ -125,9 +104,11 @@ def main():
         pca_scores = processor.apply_pca()
         
         logger.info(f"✅ PCA scores shape: {pca_scores.shape}")
+        logger.info(f"PC1 variance: {processor.pca.explained_variance_ratio_[0]*100:.2f}%")
+        logger.info(f"PC2 variance: {processor.pca.explained_variance_ratio_[1]*100:.2f}%")
         logger.info(
-            f"Variance explained by first {processor.n_targets} components: "
-            f"{np.sum(processor.pca.explained_variance_ratio_[:processor.n_targets])*100:.2f}%"
+            f"Total (first 5): "
+            f"{np.sum(processor.pca.explained_variance_ratio_[:5])*100:.2f}%"
         )
         
     except Exception as e:
@@ -140,13 +121,7 @@ def main():
     logger.info("\n6. Extracting target values (first 5 PC scores)...")
     try:
         targets = processor.extract_targets()
-        
         logger.info(f"✅ Targets shape: {targets.shape}")
-        logger.info(f"Targets statistics:")
-        logger.info(f"  Mean: {targets.mean(axis=0)}")
-        logger.info(f"  Std: {targets.std(axis=0)}")
-        logger.info(f"  Min: {targets.min(axis=0)}")
-        logger.info(f"  Max: {targets.max(axis=0)}")
         
     except Exception as e:
         logger.error(f"❌ Error extracting targets: {e}")
@@ -162,20 +137,22 @@ def main():
         targets,
         columns=[f'PC{i+1}' for i in range(targets.shape[1])]
     )
+    # Add CID column
     targets_df['CID'] = averaged_maps_df['CID'].values
+    # Reorder columns to have CID first
     targets_df = targets_df[['CID'] + [f'PC{i+1}' for i in range(targets.shape[1])]]
     
     targets_path = output_dir / "brain_pca_scores.csv"
     targets_df.to_csv(targets_path, index=False)
     logger.info(f"✅ Saved targets: {targets_path}")
     
-    # Save averaged brain maps (for future analysis)
+    # Save averaged brain maps
     brain_maps_path = output_dir / "brain_maps_averaged.npz"
+    brain_maps_array = np.stack([arr for arr in averaged_maps_df['brain_map'].values])
     np.savez_compressed(
         brain_maps_path,
-        brain_matrix=processor.brain_matrix,
-        cids=averaged_maps_df['CID'].values,
-        n_reps=averaged_maps_df['n_reps'].values
+        brain_matrix=brain_maps_array,
+        cids=averaged_maps_df['CID'].values
     )
     logger.info(f"✅ Saved averaged brain maps: {brain_maps_path}")
     
@@ -186,41 +163,26 @@ def main():
         components=processor.pca.components_,
         explained_variance=processor.pca.explained_variance_,
         explained_variance_ratio=processor.pca.explained_variance_ratio_,
-        mean=processor.pca.mean_,
-        n_components=processor.pca.n_components_
+        mean=processor.pca.mean_
     )
     logger.info(f"✅ Saved PCA model: {pca_model_path}")
     
     # Create visualizations
     logger.info("\n8. Creating visualizations...")
     try:
-        processor.visualize_pca(
-            output_dir=str(viz_dir),
-            n_components_to_plot=5
-        )
+        processor.visualize_pca(output_dir=str(viz_dir))
         logger.info(f"✅ Saved visualizations: {viz_dir}")
         
     except Exception as e:
         logger.warning(f"⚠️ Error creating visualizations: {e}")
-        # Non-critical, continue
     
     # Summary
     logger.info("\n" + "=" * 80)
     logger.info("PIPELINE COMPLETE ✅")
     logger.info("=" * 80)
-    logger.info(f"Input: {len(molecules_df)} molecules, 405 brain map presentations")
-    logger.info(f"Output: {len(averaged_maps_df)} averaged brain maps")
-    logger.info(f"Targets: {targets.shape[0]} × {targets.shape[1]} PCA scores")
-    logger.info(f"Variance explained: {np.sum(processor.pca.explained_variance_ratio_[:5])*100:.2f}%")
-    logger.info("\nOutput files:")
-    logger.info(f"  1. {targets_path.relative_to(project_root)}")
-    logger.info(f"  2. {brain_maps_path.relative_to(project_root)}")
-    logger.info(f"  3. {pca_model_path.relative_to(project_root)}")
-    logger.info(f"  4. {viz_dir.relative_to(project_root)}/pca_*.png")
-    logger.info("\nNext steps:")
-    logger.info("  - Align molecular features (X) with brain PCA scores (y)")
-    logger.info("  - Train neural network: X → y")
-    logger.info("  - Validate R² ≈ 0.506 (thesis result)")
+    logger.info(f"Molecules: {len(averaged_maps_df)}")
+    logger.info(f"Targets: {targets.shape}")
+    logger.info(f"Variance: {np.sum(processor.pca.explained_variance_ratio_[:5])*100:.2f}%")
     logger.info("=" * 80)
     
     return 0

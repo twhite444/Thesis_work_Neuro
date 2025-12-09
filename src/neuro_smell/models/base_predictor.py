@@ -167,8 +167,13 @@ class OdorPredictor(pl.LightningModule):
         # Compute loss
         loss = self.criterion(y_hat, y)
         
-        # Compute correlation (your key metric!)
+        # Compute correlation (overall Pearson across all targets)
         correlation = self._compute_correlation(y_hat, y)
+        # If multi-output, also log per-target correlations
+        if y_hat.ndim == 2 and y_hat.shape[1] > 1:
+            per_corr = self._compute_per_target_correlation(y_hat, y)
+            for i, c in enumerate(per_corr):
+                self.log(f'val_corr_PC{i+1}', c, on_step=False, on_epoch=True, prog_bar=False)
         
         # Log metrics
         self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -210,6 +215,10 @@ class OdorPredictor(pl.LightningModule):
         y_hat = self(x)
         loss = self.criterion(y_hat, y)
         correlation = self._compute_correlation(y_hat, y)
+        if y_hat.ndim == 2 and y_hat.shape[1] > 1:
+            per_corr = self._compute_per_target_correlation(y_hat, y)
+            for i, c in enumerate(per_corr):
+                self.log(f'test_corr_PC{i+1}', c, on_step=False, on_epoch=True)
         
         self.log('test_loss', loss, on_step=False, on_epoch=True)
         self.log('test_correlation', correlation, on_step=False, on_epoch=True)
@@ -248,6 +257,15 @@ class OdorPredictor(pl.LightningModule):
         correlation = covariance / (pred_std * target_std + 1e-8)
         
         return correlation
+
+    def _compute_per_target_correlation(self, pred: torch.Tensor, target: torch.Tensor):
+        """Compute Pearson correlation per target dimension for multi-output."""
+        if pred.ndim == 1:
+            return [self._compute_correlation(pred, target)]
+        corrs = []
+        for j in range(pred.shape[1]):
+            corrs.append(self._compute_correlation(pred[:, j], target[:, j]))
+        return corrs
     
     def configure_optimizers(self) -> Dict[str, Any]:
         """

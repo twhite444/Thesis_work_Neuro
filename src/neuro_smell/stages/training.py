@@ -210,7 +210,8 @@ class TrainingStage:
         
         # Get best metrics from training
         best_val_loss = self.trainer.callback_metrics.get('val_loss', None)
-        best_val_corr = self.trainer.callback_metrics.get('val_pearson_corr', None)
+        # Harmonize metric naming with model logger
+        best_val_corr = self.trainer.callback_metrics.get('val_correlation', None)
         
         # Compile results
         results = {
