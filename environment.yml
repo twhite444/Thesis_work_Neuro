@@ -1,0 +1,23 @@
+name: thesis-neuro
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - rdkit
+  - pytorch
+  - pymol-open-source
+  - jupyterlab
+  - ipykernel
+  - pip
+  - pip:
+      - py3Dmol
+      - torch-geometric
+      - mordred[full]
+      - pyrfume

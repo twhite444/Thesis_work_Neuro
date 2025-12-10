@@ -25,7 +25,7 @@ import warnings
 def get_atom_features(atom: Chem.Atom) -> np.ndarray:
     """Extract feature vector for a single atom.
     
-    Features (total: 74 dimensions):
+    Features (total: 137 dimensions):
     - Atomic number (one-hot, 100 elements): 100 dims
     - Degree (one-hot, 0-10): 11 dims
     - Formal charge (one-hot, -2 to +2): 5 dims
@@ -40,7 +40,7 @@ def get_atom_features(atom: Chem.Atom) -> np.ndarray:
         atom: RDKit Atom object
         
     Returns:
-        Feature vector as numpy array (74,)
+        Feature vector as numpy array (137,)
     """
     features = []
     
@@ -185,7 +185,7 @@ def smiles_to_graph(smiles: str, include_edge_features: bool = True) -> Optional
         
     Returns:
         Dictionary with keys:
-        - 'node_features': Node feature matrix (num_atoms, 74)
+        - 'node_features': Node feature matrix (num_atoms, 137)
         - 'edge_index': Edge indices (2, num_bonds*2) - undirected graph
         - 'edge_attr': Edge feature matrix (num_bonds*2, 10) [if include_edge_features=True]
         - 'num_nodes': Number of atoms
@@ -554,3 +554,181 @@ def generate_and_save_molecular_graphs(
         print()
     
     return stats
+
+
+# ============================================================================
+# Helper Function for Interactive Exploration
+# ============================================================================
+
+def load_graph_by_cid(
+    cid: int,
+    data_dir: str = "data/01_raw",
+    show_image: bool = False,
+    save_image: bool = False,
+    mode: str = 'detailed',
+    projection: str = '2d'
+) -> Optional[Dict[str, np.ndarray]]:
+    """Load and optionally visualize molecular graph for a specific CID.
+    
+    This is a helper function similar to activity map loaders - combines
+    data loading with optional visualization.
+    
+    Args:
+        cid: Compound ID to load
+        data_dir: Directory containing molecular_graphs.npz and molecules_raw.npz
+        show_image: If True, display interactive visualization window
+        save_image: If True, save visualization to file (only works if show_image is True)
+        mode: 'simple' (just molecule) or 'detailed' (molecule + comprehensive info)
+        projection: '2d' (2D layout) or '3d' (3D conformer with optimized geometry)
+        
+    Returns:
+        Dictionary with graph data (node_features, edge_index, etc.) or None if not found
+        
+    Example:
+        >>> # Just load the graph data
+        >>> graph = load_graph_by_cid(180)
+        >>> print(f"Nodes: {graph['num_nodes']}, Edges: {graph['num_edges']}")
+        
+        >>> # Load and display (simple mode, 2D)
+        >>> graph = load_graph_by_cid(180, show_image=True, mode='simple')
+        
+        >>> # Load and display (simple mode, 3D)
+        >>> graph = load_graph_by_cid(180, show_image=True, mode='simple', projection='3d')
+        
+        >>> # Load, display detailed, and save
+        >>> graph = load_graph_by_cid(180, show_image=True, save_image=True, mode='detailed')
+    """
+    import os
+    
+    # Load graph data
+    graph_data = load_graph_data(data_dir)
+    graph = get_graph_by_cid(cid, graph_data)
+    
+    if graph is None:
+        print(f"No graph found for CID {cid}")
+        return None
+    
+    # Print basic info
+    print(f"\nCID {cid} Molecular Graph:")
+    print(f"  Nodes (atoms): {graph['num_nodes']}")
+    print(f"  Edges (bonds): {graph['num_edges']}")
+    print(f"  Node features: {graph['node_features'].shape}")
+    if 'edge_attr' in graph:
+        print(f"  Edge features: {graph['edge_attr'].shape}")
+    print()
+    
+    # Visualize if requested
+    if show_image:
+        from .graph_viz import visualize_molecular_graph
+        from .pyrfume_loader import load_molecules_npz
+        
+        # Load molecule data for SMILES
+        molecules = load_molecules_npz(data_dir)
+        
+        save_path = None
+        if save_image:
+            # Save to viz/molecules/ directory
+            viz_dir = os.path.join('viz', 'molecules')
+            os.makedirs(viz_dir, exist_ok=True)
+            save_path = os.path.join(viz_dir, f'CID_{cid}.png')
+        
+        visualize_molecular_graph(
+            cid,
+            graph_data,
+            molecules,
+            save_path=save_path,
+            show=True,
+            mode=mode,
+            projection=projection
+        )
+        
+        if save_path:
+            print(f"💡 Visualization saved to: {save_path}")
+        else:
+            print(f"💡 Close the visualization window to continue...")
+    
+    return graph
+
+
+def visualize_molecule_interactive(
+    cid: int,
+    data_dir: str = 'data/01_raw',
+    output_path: Optional[str] = None,
+    width: int = 800,
+    height: int = 600,
+    style: str = 'stick',
+    open_browser: bool = True
+):
+    """Create an interactive 3D molecular visualization in your web browser.
+    
+    This function creates an HTML file with an interactive py3Dmol viewer that
+    you can rotate, zoom, and explore in 3D.
+    
+    Args:
+        cid: PubChem CID of the molecule
+        data_dir: Directory containing molecules.npz
+        output_path: Optional path to save HTML file. If None, saves to data_dir
+        width: Viewer width in pixels (default: 800)
+        height: Viewer height in pixels (default: 600)
+        style: Visualization style - 'stick', 'sphere', 'cartoon', 'line', 'cross' (default: 'stick')
+        open_browser: Whether to automatically open in browser (default: True)
+        
+    Returns:
+        Path to the generated HTML file, or None if failed
+        
+    Example:
+        >>> # Open vanillin in interactive 3D viewer
+        >>> visualize_molecule_interactive(1183)
+        
+        >>> # Save limonene as sphere style
+        >>> visualize_molecule_interactive(440917, style='sphere')
+    """
+    import os
+    from .graph_viz import visualize_molecule_3d_interactive
+    from .pyrfume_loader import load_molecules_npz
+    
+    # Load molecule data for SMILES
+    molecules = load_molecules_npz(data_dir)
+    
+    # Find the molecule
+    mol_idx = np.where(molecules['CID'] == cid)[0]
+    if len(mol_idx) == 0:
+        print(f"❌ No molecule found for CID {cid}")
+        return None
+    
+    smiles = molecules['IsomericSMILES'][mol_idx[0]]
+    mol_name = molecules.get('name', np.array([None] * len(molecules['CID'])))[mol_idx[0]]
+    
+    # Set output path to viz/molecules/ directory
+    if output_path is None:
+        viz_dir = os.path.join('viz', 'molecules')
+        os.makedirs(viz_dir, exist_ok=True)
+        output_path = os.path.join(viz_dir, f'CID_{cid}.html')
+    
+    # Create interactive visualization
+    print(f"\n🌐 Creating interactive 3D viewer for CID {cid}")
+    if mol_name:
+        print(f"   Molecule: {mol_name}")
+    print(f"   Style: {style}")
+    
+    success = visualize_molecule_3d_interactive(
+        smiles,
+        output_path,
+        width=width,
+        height=height,
+        style=style
+    )
+    
+    if success:
+        print(f"✅ Interactive viewer saved to: {output_path}")
+        
+        # Open in browser if requested
+        if open_browser:
+            import webbrowser
+            webbrowser.open(f'file://{os.path.abspath(output_path)}')
+            print("🌐 Opening in your default web browser...")
+        
+        return output_path
+    else:
+        print("❌ Failed to create interactive visualization")
+        return None

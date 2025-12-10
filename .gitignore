@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Data directories (keep structure, ignore contents)
+data/01_raw/*.csv
+data/01_raw/*.npz
+data/01_raw/*.sdf
+data/01_raw/activity_maps_csv/
+data/02_interim/
+data/03_processed/
+
+# Visualization outputs (auto-generated)
+viz/molecules/*.png
+viz/molecules/*.html
+viz/maps/*.png
+viz/reports/*.png
+viz/reports/*.html
+
+# Keep README files
+!viz/README.md
+!viz/**/README.md
+
+# Models
+*.pth
+*.onnx
+*.pkl
+*.h5
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Experiments
+experiments/
+
+# Legacy code
+legacy/
