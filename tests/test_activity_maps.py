@@ -25,32 +25,27 @@ def test_load_directory_csv_parses_cid(tmp_path):
 
 
 @pytest.mark.unit
-def test_load_activity_maps_uses_pyrfume(tmp_path, monkeypatch):
+def test_load_activity_maps_uses_pyrfume(tmp_path):
+    """Test loading activity maps from local CSV files (refactored from Pyrfume-based loading)."""
+    # Create directory structure
+    data_dir = tmp_path / 'data'
+    data_dir.mkdir()
+    activity_maps_csv = data_dir / 'activity_maps_csv'
+    activity_maps_csv.mkdir()
+    
+    # Create activity map CSV files
+    pd.DataFrame(np.array([[1, 0],[0, 2]])).to_csv(activity_maps_csv / 'a.csv')
+    pd.DataFrame(np.array([[2, 1],[1, 0]])).to_csv(activity_maps_csv / 'b.csv')
+    pd.DataFrame(np.array([[0, 0],[0, 3]])).to_csv(activity_maps_csv / 'c.csv')
+    
+    # Create directory DataFrame
     directory = pd.DataFrame({
         'Stimulus': ['1_a', '1_b', '2_c'],
-        'Activity Map Path': ['maps/a.csv', 'maps/b.csv', 'maps/c.csv'],
+        'Activity Map Path': ['a.csv', 'b.csv', 'c.csv'],
         'CID': [1, 1, 2],
     })
-    import src.neuro_foundation.pipeline.activity_maps as am
-
-    class FakeData:
-        def __init__(self, arr):
-            self._arr = arr
-        def to_numpy(self):
-            return self._arr
-
-    def fake_load_data(path):
-        # Return small arrays
-        if path.endswith('a.csv'):
-            return FakeData(np.array([[1, np.nan],[0, 2]]))
-        if path.endswith('b.csv'):
-            return FakeData(np.array([[2, 1],[1, 0]]))
-        if path.endswith('c.csv'):
-            return FakeData(np.array([[0, 0],[np.nan, 3]]))
-        raise FileNotFoundError
-
-    monkeypatch.setattr(am, 'load_data', fake_load_data)
-    recs = load_activity_maps(directory, base_path='base')
+    
+    recs = load_activity_maps(directory, data_dir=str(data_dir))
     assert len(recs) == 3
     assert recs[0].cid == 1
     assert recs[1].cid == 1
@@ -99,27 +94,18 @@ def test_pipeline_load_and_mask_end_to_end(tmp_path, monkeypatch):
         'Activity Map Path': ['maps/a.csv', 'maps/b.csv', 'maps/c.csv'],
     }).to_csv(csv, index=False)
 
-    # Fake pyrfume load_data
-    import src.neuro_foundation.pipeline.activity_maps as am
-
-    class FakeData:
-        def __init__(self, arr):
-            self._arr = arr
-        def to_numpy(self):
-            return self._arr
-
-    def fake_load_data(path):
-        if path.endswith('a.csv'):
-            return FakeData(np.array([[1, 0],[0, 1]]))
-        if path.endswith('b.csv'):
-            return FakeData(np.array([[2, 0],[0, 2]]))
-        if path.endswith('c.csv'):
-            return FakeData(np.array([[0, 1],[1, 0]]))
-        raise FileNotFoundError
-
-    monkeypatch.setattr(am, 'load_data', fake_load_data)
-
-    maps, cids, mask = pipeline_load_and_mask(str(csv), base_path='base', coverage_threshold=0.5, output_dir=str(tmp_path))
+    # Create data directory with activity maps
+    data_dir = tmp_path / 'data'
+    data_dir.mkdir()
+    activity_maps_csv = data_dir / 'activity_maps_csv'
+    activity_maps_csv.mkdir()
+    
+    # Create activity map CSV files
+    pd.DataFrame(np.array([[1, 0],[0, 1]])).to_csv(activity_maps_csv / 'a.csv')
+    pd.DataFrame(np.array([[2, 0],[0, 2]])).to_csv(activity_maps_csv / 'b.csv')
+    pd.DataFrame(np.array([[0, 1],[1, 0]])).to_csv(activity_maps_csv / 'c.csv')
+    
+    maps, cids, mask = pipeline_load_and_mask(str(csv), data_dir=str(data_dir), coverage_threshold=0.5, output_dir=str(tmp_path))
     assert len(maps) == 2  # averaged per CID (10 has two maps)
     assert set(cids) == {10, 20}
     # Visualizations exist
