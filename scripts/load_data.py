@@ -14,12 +14,29 @@ def main(output_dir: str):
     
     # Load molecules and behavior_1 from leon
     molecules = pyrfume.load_data('leon/molecules.csv')
+    molecules.reset_index(inplace=True)
+    molecules.rename(columns={'index': 'CID'}, inplace=True)
+
+     # Check for duplicate CIDs
+    duplicate_cids = molecules[molecules.duplicated(subset='CID', keep=False)]
+    print(f"Duplicate CIDs in molecules before removal:\n{duplicate_cids}")
+
+    # Remove duplicate CIDs by keeping the first occurrence
+    molecules = molecules.drop_duplicates(subset='CID', keep='first')
+
+    # Debug: Check for duplicates after removal
+    duplicate_cids_after = molecules[molecules.duplicated(subset='CID', keep=False)]
+    print(f"Duplicate CIDs in molecules after removal:\n{duplicate_cids_after}")
+
+
+    # Load behavior data
     behavior = pyrfume.load_data('leon/behavior_1.csv')
+    
     
     # Save raw data to output_dir
     molecules.to_csv(os.path.join(output_dir, 'molecules_raw.csv'), index=False)
-    behavior.to_csv(os.path.join(output_dir, 'behavior_data.csv'), index=False)
-    
+    behavior.to_csv(os.path.join(output_dir, 'behavior_data.csv'), index=True)
+
     print(f"Saved molecules to {output_dir}/molecules_raw.csv ({molecules.shape})")
     print(f"Saved behavior to {output_dir}/behavior_data.csv ({behavior.shape})")
 
