@@ -1,28 +1,27 @@
 from __future__ import annotations
 import argparse
-from pathlib import Path
-from src.neuro_foundation.data.pyrfume_loader import PyrfumeLoader
 import os
+from pathlib import Path
 import pyrfume
 
 
 def main(output_dir: str):
     os.makedirs(output_dir, exist_ok=True)
-    loader = PyrfumeLoader(output_dir=output_dir)
-    molecules = loader.load_molecules()
-    images = loader.load_images()  # optional
-
-    # Strictly load the leon behavior listing (behavior_1.csv) and save it
-    behavior_df = pyrfume.load_data('leon/behavior_1.csv')
-    behavior_path = Path(output_dir) / 'behavior_data.csv'
-    behavior_df.to_csv(behavior_path, index=False)
-
-    print(f"Saved raw molecules to {output_dir}/molecules_raw.csv ({molecules.shape})")
-    if images is not None:
-        print(f"Saved image data to {output_dir}/image_data.csv ({images.shape})")
-    else:
-        print("Image data not available; skipped saving.")
-    print(f"Saved behavior listing to {behavior_path} ({behavior_df.shape})")
+    
+    # Load manifests as in legacy
+    _ = pyrfume.load_manifest('arshamian_2022')
+    _ = pyrfume.load_manifest('leon')
+    
+    # Load molecules and behavior_1 from leon
+    molecules = pyrfume.load_data('leon/molecules.csv')
+    behavior = pyrfume.load_data('leon/behavior_1.csv')
+    
+    # Save raw data to output_dir
+    molecules.to_csv(os.path.join(output_dir, 'molecules_raw.csv'), index=False)
+    behavior.to_csv(os.path.join(output_dir, 'behavior_data.csv'), index=False)
+    
+    print(f"Saved molecules to {output_dir}/molecules_raw.csv ({molecules.shape})")
+    print(f"Saved behavior to {output_dir}/behavior_data.csv ({behavior.shape})")
 
 
 if __name__ == "__main__":
