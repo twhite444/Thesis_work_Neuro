@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import label, binary_dilation, binary_erosion
 import matplotlib.pyplot as plt
-from pyrfume import load_data
 
 
 @dataclass
@@ -27,15 +26,40 @@ def load_directory_csv(path: str) -> pd.DataFrame:
     return df
 
 
-def load_activity_maps(directory_df: pd.DataFrame, base_path: str = 'leon') -> List[ActivityMapRecord]:
-    """Load activity maps from pyrfume using paths in directory_df relative to base_path."""
+def load_activity_maps(directory_df: pd.DataFrame, data_dir: str = 'data/01_raw') -> List[ActivityMapRecord]:
+    """Load activity maps from local CSV files in data_dir/activity_maps_csv/.
+    
+    Args:
+        directory_df: DataFrame with 'CID' and 'Activity Map Path' columns
+        data_dir: Base directory containing activity_maps_csv/ folder
+    
+    Returns:
+        List of ActivityMapRecord objects
+    """
     records: List[ActivityMapRecord] = []
     total = len(directory_df)
+    csv_dir = os.path.join(data_dir, 'activity_maps_csv')
+    
+    if not os.path.exists(csv_dir):
+        raise FileNotFoundError(f"Activity maps CSV directory not found: {csv_dir}. "
+                               f"Run 'python scripts/load_all_data.py' first to download the data.")
+    
     for i, (_, row) in enumerate(directory_df.iterrows(), start=1):
         print(f'\rLoading maps: {i}/{total}', end='', flush=True)
-        map_path = os.path.join(base_path, row['Activity Map Path'])
-        arr = np.nan_to_num(load_data(map_path).to_numpy(), nan=0)
+        
+        # Get the filename from the path
+        map_filename = os.path.basename(row['Activity Map Path'])
+        map_path = os.path.join(csv_dir, map_filename)
+        
+        if not os.path.exists(map_path):
+            print(f"\nWarning: Map file not found: {map_path}, skipping...")
+            continue
+            
+        # Load CSV and convert to numpy array
+        map_df = pd.read_csv(map_path, index_col=0)
+        arr = np.nan_to_num(map_df.to_numpy(), nan=0)
         records.append(ActivityMapRecord(cid=int(row['CID']), map=arr))
+    
     print()
     return records
 
@@ -102,7 +126,21 @@ def visualize_global_mask(mask: np.ndarray, output_path: str) -> None:
 
 
 def visualize_coverage(valid_counts: np.ndarray, output_path: str) -> None:
-    visualize_map(valid_counts.astype(float), title='Coverage Counts', output_path=output_path, cmap='magma')
+    """Visualize coverage counts with zeros masked as NaN for clarity."""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    # Create a copy with zeros replaced by NaN for visualization
+    display_data = valid_counts.astype(float).copy()
+    display_data[display_data == 0] = np.nan
+    
+    plt.figure(figsize=(8, 6))
+    im = plt.imshow(display_data, cmap='magma', interpolation='nearest')
+    plt.colorbar(im, label='Number of maps covering pixel')
+    plt.title('Coverage Counts (zeros = no coverage)')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
 
 def visualize_coverage_histogram(valid_counts: np.ndarray, output_path: str) -> None:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -117,17 +155,26 @@ def visualize_coverage_histogram(valid_counts: np.ndarray, output_path: str) -> 
     plt.close()
 
 
-def pipeline_load_and_mask(directory_csv: str, base_path: str = 'leon', coverage_threshold: float = 1.0,
+def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', coverage_threshold: float = 1.0,
                             output_dir: str = 'output_data', verbose: bool = False) -> Tuple[List[np.ndarray], List[int], np.ndarray]:
     """High-level function: load directory, load maps, compute+apply mask, average by CID, and visualize.
-    Returns averaged masked maps, their CIDs, and the refined mask.
+    
+    Args:
+        directory_csv: Path to behavior CSV with activity map paths
+        data_dir: Directory containing activity_maps_csv/ folder (default: 'data/01_raw')
+        coverage_threshold: Fraction of maps required to consider a pixel covered
+        output_dir: Directory to save visualizations
+        verbose: Print debug information
+    
+    Returns:
+        Tuple of (averaged_maps, cids, mask)
     """
     os.makedirs(output_dir, exist_ok=True)
     df = load_directory_csv(directory_csv)
     if verbose:
         print(f"Directory rows: {len(df)}")
         print(df.head())
-    records = load_activity_maps(df, base_path=base_path)
+    records = load_activity_maps(df, data_dir=data_dir)
     # coverage visualization (before mask)
     shape = records[0].map.shape if records else (0, 0)
     valid_counts = np.zeros(shape, dtype=int)
