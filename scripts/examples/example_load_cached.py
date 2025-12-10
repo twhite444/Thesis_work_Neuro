@@ -8,8 +8,8 @@ import sys
 import time
 from pathlib import Path
 
-# Add parent directory to path so we can import src
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path (go up 2 levels from scripts/examples/)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.neuro_foundation.data.pyrfume_loader import (
     load_molecules_csv,

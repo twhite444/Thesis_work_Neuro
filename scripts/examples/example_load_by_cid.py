@@ -5,8 +5,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path (go up 2 levels from scripts/examples/)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.neuro_foundation.data.pyrfume_loader import (
     load_activity_maps_by_cid,

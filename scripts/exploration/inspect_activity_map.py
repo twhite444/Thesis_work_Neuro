@@ -3,19 +3,19 @@
 
 Usage:
     # List all available maps
-    python scripts/inspect_activity_map.py --list-all
+    python scripts/exploration/inspect_activity_map.py --list-all
     
     # Show stats for a specific CID
-    python scripts/inspect_activity_map.py --cid 180
+    python scripts/exploration/inspect_activity_map.py --cid 180
     
     # Show stats AND interactive visualization (opens popup window)
-    python scripts/inspect_activity_map.py --cid 180 --show-images
+    python scripts/exploration/inspect_activity_map.py --cid 180 --show-images
     
     # Show stats, visualization, AND save to file
-    python scripts/inspect_activity_map.py --cid 180 --show-images --save-images
+    python scripts/exploration/inspect_activity_map.py --cid 180 --show-images --save-images
     
     # Inspect a specific map file
-    python scripts/inspect_activity_map.py --filename 1031_0.csv
+    python scripts/exploration/inspect_activity_map.py --filename 1031_0.csv
 """
 import argparse
 import os
@@ -26,8 +26,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path (go up 2 levels from scripts/exploration/)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.neuro_foundation.data.pyrfume_loader import (
     load_activity_maps_by_cid,
@@ -244,11 +244,11 @@ def main():
     else:
         parser.print_help()
         print("\nExamples:")
-        print("  python scripts/inspect_activity_map.py --list-all")
-        print("  python scripts/inspect_activity_map.py --cid 180")
-        print("  python scripts/inspect_activity_map.py --cid 180 --show-images")
-        print("  python scripts/inspect_activity_map.py --cid 180 --show-images --save-images")
-        print("  python scripts/inspect_activity_map.py --filename 1031_0.csv")
+        print("  python scripts/exploration/inspect_activity_map.py --list-all")
+        print("  python scripts/exploration/inspect_activity_map.py --cid 180")
+        print("  python scripts/exploration/inspect_activity_map.py --cid 180 --show-images")
+        print("  python scripts/exploration/inspect_activity_map.py --cid 180 --show-images --save-images")
+        print("  python scripts/exploration/inspect_activity_map.py --filename 1031_0.csv")
 
 
 if __name__ == "__main__":
