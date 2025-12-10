@@ -1,6 +1,7 @@
 # Neuro Foundation
 
 A minimal, modular foundation to rebuild the thesis pipeline without touching `legacy/`.
+If you would like to see original thesis code with neural networks you may find it in the legacy folder or in the prefactor branch. I am currently working on redesigning the code architecture to be modular and user friendly. I will also be making it more compatible for both GNN and NN analysis. 
 
 ## 🚀 Data Preparation
 
