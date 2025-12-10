@@ -9,8 +9,8 @@ def main(output_dir: str):
     os.makedirs(output_dir, exist_ok=True)
     
     # Load manifests as in legacy
-    _ = pyrfume.load_manifest('arshamian_2022')
-    _ = pyrfume.load_manifest('leon')
+    #_ = pyrfume.load_manifest('arshamian_2022')
+    #_ = pyrfume.load_manifest('leon')
     
     # Load molecules and behavior_1 from leon
     molecules = pyrfume.load_data('leon/molecules.csv')
