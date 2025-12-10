@@ -36,6 +36,12 @@ def main(output_dir: str, skip_activity_maps: bool = False):
     behavior = loader.load_behavior()
     print(f"✓ Loaded {len(behavior)} behavior entries\n")
     
+    print("=" * 70)
+    print("Loading stimuli metadata from Pyrfume...")
+    print("=" * 70)
+    stimuli = loader.load_stimuli()
+    print(f"✓ Loaded {len(stimuli)} stimuli entries\n")
+    
     if not skip_activity_maps:
         print("=" * 70)
         print("Loading activity maps from Pyrfume (this may take a minute)...")
@@ -52,12 +58,14 @@ def main(output_dir: str, skip_activity_maps: bool = False):
     print(f"Output directory: {output_dir}")
     print(f"  - molecules_raw.csv / .npz: {len(molecules)} molecules")
     print(f"  - behavior_data.csv / .npz: {len(behavior)} entries")
+    print(f"  - stimuli_metadata.csv / .npz: {len(stimuli)} entries")
     if not skip_activity_maps:
         print(f"  - activity_maps.npz: {len(activity_maps)} maps")
         print(f"  - activity_maps_csv/: {len(activity_maps)} individual CSV files")
     print("\nFiles can be loaded using:")
     print("  from src.neuro_foundation.data.pyrfume_loader import (")
-    print("      load_molecules_csv, load_behavior_csv, load_activity_maps_npz")
+    print("      load_molecules_csv, load_behavior_csv, load_stimuli_csv,")
+    print("      load_activity_maps_npz")
     print("  )")
 
 

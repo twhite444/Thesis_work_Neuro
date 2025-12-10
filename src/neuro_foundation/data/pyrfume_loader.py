@@ -90,6 +90,44 @@ class PyrfumeLoader(DatasetLoader):
         print(f"Saved {len(behavior)} behavior entries to {csv_path} and {npz_path}")
         return behavior
 
+    def load_stimuli(self) -> pd.DataFrame:
+        """Load stimuli metadata from Pyrfume with experimental details.
+        
+        Returns detailed information about each stimulus including:
+        - CID: Compound identifier (can be negative for natural mixtures)
+        - Rep: Repetition number
+        - Name: Common name of the odorant
+        - Conditions: Experimental conditions (concentration, duration, etc.)
+        - SourceFile: Original data file
+        
+        The index is the Stimulus ID (e.g., '1031_0', '-10_0') which matches
+        the activity map filenames and behavior data.
+        """
+        _ = pyrfume.load_manifest('leon')
+        stimuli = pyrfume.load_data('leon/stimuli.csv')
+        
+        # Reset index to make Stimulus a column
+        stimuli.reset_index(inplace=True)
+        
+        # Save CSV for human readability
+        csv_path = os.path.join(self.output_dir, 'stimuli_metadata.csv')
+        stimuli.to_csv(csv_path, index=False)
+        
+        # Save NPZ for fast loading
+        npz_path = os.path.join(self.output_dir, 'stimuli_metadata.npz')
+        np.savez_compressed(
+            npz_path,
+            Stimulus=stimuli['Stimulus'].values,
+            CID=stimuli['CID'].values,
+            Rep=stimuli['Rep'].values,
+            Name=stimuli['Name'].values,
+            Conditions=stimuli['Conditions'].fillna('').values,
+            SourceFile=stimuli['SourceFile'].values
+        )
+        
+        print(f"Saved {len(stimuli)} stimuli entries to {csv_path} and {npz_path}")
+        return stimuli
+
     def load_activity_maps(self, save_individual_csvs: bool = True) -> List[ActivityMapRecord]:
         """Load all activity maps from Pyrfume and save to NPZ and individual CSVs.
         
@@ -212,6 +250,26 @@ def load_behavior_npz(data_dir: str = "data/01_raw") -> pd.DataFrame:
     return pd.DataFrame({
         'Stimulus': data['Stimulus'],
         'Activity Map Path': data['ActivityMapPath']
+    })
+
+
+def load_stimuli_csv(data_dir: str = "data/01_raw") -> pd.DataFrame:
+    """Load stimuli metadata from cached CSV file."""
+    csv_path = os.path.join(data_dir, 'stimuli_metadata.csv')
+    return pd.read_csv(csv_path)
+
+
+def load_stimuli_npz(data_dir: str = "data/01_raw") -> pd.DataFrame:
+    """Load stimuli metadata from cached NPZ file (faster than CSV)."""
+    npz_path = os.path.join(data_dir, 'stimuli_metadata.npz')
+    data = np.load(npz_path, allow_pickle=True)
+    return pd.DataFrame({
+        'Stimulus': data['Stimulus'],
+        'CID': data['CID'],
+        'Rep': data['Rep'],
+        'Name': data['Name'],
+        'Conditions': data['Conditions'],
+        'SourceFile': data['SourceFile']
     })
 
 
