@@ -30,10 +30,13 @@ def load_directory_csv(path: str) -> pd.DataFrame:
 def load_activity_maps(directory_df: pd.DataFrame, base_path: str = 'leon') -> List[ActivityMapRecord]:
     """Load activity maps from pyrfume using paths in directory_df relative to base_path."""
     records: List[ActivityMapRecord] = []
-    for _, row in directory_df.iterrows():
+    total = len(directory_df)
+    for i, (_, row) in enumerate(directory_df.iterrows(), start=1):
+        print(f'\rLoading maps: {i}/{total}', end='', flush=True)
         map_path = os.path.join(base_path, row['Activity Map Path'])
         arr = np.nan_to_num(load_data(map_path).to_numpy(), nan=0)
         records.append(ActivityMapRecord(cid=int(row['CID']), map=arr))
+    print()
     return records
 
 
