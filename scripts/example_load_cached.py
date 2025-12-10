@@ -97,6 +97,25 @@ def usage_examples():
     print(f"  Unique CIDs: {len(set(cids))}")
     print(f"  Map dimensions: {maps.shape[1]}x{maps.shape[2]}")
     print(f"  Average coverage: {(maps > 0).mean(axis=(1,2)).mean():.1%} of pixels active")
+    
+    # Load activity maps by CID
+    from src.neuro_foundation.data.pyrfume_loader import (
+        load_activity_maps_by_cid,
+        load_activity_map_by_cid_averaged
+    )
+    print(f"\nExample 4: Load activity maps for a specific CID")
+    maps_for_cid = load_activity_maps_by_cid(180)
+    print(f"  CID 180 has {len(maps_for_cid)} maps")
+    if maps_for_cid:
+        print(f"  First map shape: {maps_for_cid[0].shape}")
+        print(f"  Coverage: {(maps_for_cid[0] > 0).mean():.1%}")
+    
+    print(f"\nExample 5: Get averaged activity map for a CID")
+    avg_map = load_activity_map_by_cid_averaged(180)
+    if avg_map is not None:
+        print(f"  Averaged map shape: {avg_map.shape}")
+        print(f"  Coverage: {(avg_map > 0).mean():.1%}")
+        print(f"  Value range: [{avg_map.min():.4f}, {avg_map.max():.4f}]")
 
 
 if __name__ == "__main__":

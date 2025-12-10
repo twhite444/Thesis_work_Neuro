@@ -124,8 +124,7 @@ class PyrfumeLoader(DatasetLoader):
         
         print(f"Loading {total} activity maps from Pyrfume...")
         for i, (_, row) in enumerate(behavior.iterrows(), start=1):
-            if i % 50 == 0 or i == total:
-                print(f'\rLoading maps: {i}/{total}', end='', flush=True)
+            print(f'\rLoading maps: {i}/{total}', end='', flush=True)
             
             map_path = row['Activity Map Path']
             # Load from pyrfume (format: csvs/1031_0.csv)
@@ -242,3 +241,55 @@ def load_activity_maps_as_arrays(data_dir: str = "data/01_raw") -> tuple[np.ndar
     npz_path = os.path.join(data_dir, 'activity_maps.npz')
     data = np.load(npz_path)
     return data['maps'], data['cids']
+
+
+def load_activity_maps_by_cid(cid: int, data_dir: str = "data/01_raw") -> List[np.ndarray]:
+    """Load all activity maps for a specific CID from NPZ file.
+    
+    Args:
+        cid: The CID (molecule identifier) to filter by
+        data_dir: Directory containing activity_maps.npz
+    
+    Returns:
+        List of 2D numpy arrays (79, 43) for all maps matching the CID.
+        Returns empty list if no maps found for this CID.
+    
+    Example:
+        >>> maps = load_activity_maps_by_cid(180)
+        >>> print(f"CID 180 has {len(maps)} maps")
+        >>> print(f"First map shape: {maps[0].shape}")
+    """
+    maps, cids = load_activity_maps_as_arrays(data_dir)
+    
+    # Find indices where CID matches
+    indices = np.where(cids == cid)[0]
+    
+    if len(indices) == 0:
+        return []
+    
+    # Return list of maps for this CID
+    return [maps[i] for i in indices]
+
+
+def load_activity_map_by_cid_averaged(cid: int, data_dir: str = "data/01_raw") -> np.ndarray | None:
+    """Load and average all activity maps for a specific CID.
+    
+    Args:
+        cid: The CID (molecule identifier) to filter by
+        data_dir: Directory containing activity_maps.npz
+    
+    Returns:
+        2D numpy array (79, 43) averaged across all maps for this CID.
+        Returns None if no maps found for this CID.
+    
+    Example:
+        >>> avg_map = load_activity_map_by_cid_averaged(180)
+        >>> print(f"Averaged map shape: {avg_map.shape}")
+    """
+    maps_for_cid = load_activity_maps_by_cid(cid, data_dir)
+    
+    if len(maps_for_cid) == 0:
+        return None
+    
+    # Average across all maps using nanmean to handle any NaN values
+    return np.nanmean(np.stack(maps_for_cid), axis=0)
