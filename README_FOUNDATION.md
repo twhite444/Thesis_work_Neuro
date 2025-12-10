@@ -2,9 +2,9 @@
 
 A minimal, modular foundation to rebuild the thesis pipeline without touching `legacy/`.
 
-## 🚀 Two Parallel Pipelines
+## 🚀 Data Preparation
 
-This project now supports **two complementary approaches** for molecular property prediction:
+This project supports **molecular descriptor** extraction and **graph-based representations**:
 
 ### 1. **Classical ML Pipeline** (Mordred Descriptors)
 - Fixed-size molecular descriptors (1613 features)
@@ -12,12 +12,12 @@ This project now supports **two complementary approaches** for molecular propert
 - Classical models (Linear, Ridge, Lasso)
 - Fast, interpretable, works on CPU
 
-### 2. **GNN Pipeline** (Graph Neural Networks) ✨ NEW!
-- Graph-based molecular representations
-- 137-dim node features + 10-dim edge features
-- Deep learning with PyTorch Geometric
-- Captures spatial molecular structure
-- See [GNN_PIPELINE.md](GNN_PIPELINE.md) for details
+### 2. **Molecular Graph Data** ✨ NEW!
+- Graph-based molecular representations from SMILES
+- 137-dim node features (atom properties)
+- 10-dim edge features (bond properties)  
+- Stored in NPZ format for later use
+- Visualization tools for inspecting graphs
 
 ## Structure
 - `src/neuro_foundation/data/` – dataset loader interface and implementations (supports both pipelines)
@@ -48,26 +48,44 @@ This project now supports **two complementary approaches** for molecular propert
 ## Swap Data Sources Later
 Implement another loader (e.g., `CsvLoader`) that conforms to `DatasetLoader` and change the CLI to import it. No pipeline code changes needed.
 
-## GNN Quick Start
+## Graph Data Quick Start
 
-For Graph Neural Network models:
+For molecular graph generation and visualization:
 
 1. **Generate molecular graphs** (one-time):
    ```bash
    python scripts/generate_graph_data.py
    ```
+   Output: `data/01_raw/molecular_graphs.npz` (287 molecules, 0.06 MB)
    
-2. **Test the GNN pipeline**:
+2. **Visualize molecular graphs**:
    ```bash
-   python scripts/test_gnn_data.py
-   ```
+   # Visualize specific molecules
+   python scripts/visualize_graphs.py --cids 180 240 7991
    
-3. **Run example GNN training**:
-   ```bash
-   python scripts/example_gnn_training.py
+   # Create a gallery view
+   python scripts/visualize_graphs.py --gallery
+   
+   # Compare structure vs graph representation
+   python scripts/visualize_graphs.py --compare 180
+   
+   # Print dataset summary
+   python scripts/visualize_graphs.py --summary
    ```
 
-4. **Build your own GNN model** - see [GNN_PIPELINE.md](GNN_PIPELINE.md) for complete guide
+3. **Use in Python**:
+   ```python
+   from src.neuro_foundation.data.molecular_graphs import load_graph_data, get_graph_by_cid
+   
+   # Load all graphs
+   graph_data = load_graph_data('data/01_raw')
+   
+   # Get specific graph
+   graph = get_graph_by_cid(180, graph_data)
+   # graph['node_features']: (num_nodes, 137)
+   # graph['edge_index']: (2, num_edges)
+   # graph['edge_attr']: (num_edges, 10)
+   ```
 
 ## Notes
 - `legacy/` is read-only. This foundation is a fresh, CS-oriented rebuild.

@@ -433,3 +433,124 @@ def graph_statistics(graph_data: Dict[str, Any]) -> Dict[str, Any]:
         'node_feature_dim': graph_data['node_features_list'][0].shape[1] if len(graph_data['node_features_list']) > 0 else 0,
         'edge_feature_dim': graph_data['edge_attr_list'][0].shape[1] if graph_data['edge_attr_list'] is not None and len(graph_data['edge_attr_list']) > 0 else 0
     }
+
+
+# ============================================================================
+# High-Level Pipeline Function
+# ============================================================================
+
+def generate_and_save_molecular_graphs(
+    data_dir: str = 'data/01_raw',
+    output_dir: str = 'data/01_raw',
+    smiles_col: str = 'IsomericSMILES',
+    cid_col: str = 'CID',
+    include_edge_features: bool = True,
+    verbose: bool = True
+) -> dict:
+    """High-level function to generate and save molecular graphs.
+    
+    This function loads molecules, converts them to graphs, saves to NPZ,
+    and returns statistics. Designed for use in scripts.
+    
+    Args:
+        data_dir: Directory containing molecules_raw.npz
+        output_dir: Directory to save molecular_graphs.npz
+        smiles_col: Column name for SMILES strings
+        cid_col: Column name for compound IDs
+        include_edge_features: Whether to include edge features
+        verbose: Whether to print progress messages
+        
+    Returns:
+        Dictionary containing graph statistics
+        
+    Example:
+        >>> stats = generate_and_save_molecular_graphs(
+        ...     data_dir='data/01_raw',
+        ...     output_dir='data/01_raw',
+        ...     include_edge_features=True
+        ... )
+        >>> print(f"Generated graphs for {stats['total_molecules']} molecules")
+    """
+    import os
+    from .pyrfume_loader import load_molecules_npz
+    
+    if verbose:
+        print("=" * 70)
+        print("Molecular Graph Data Generation")
+        print("=" * 70)
+        print()
+    
+    # Load molecules
+    if verbose:
+        print(f"Loading molecules from {data_dir}/molecules_raw.npz...")
+    molecules = load_molecules_npz(data_dir=data_dir)
+    if verbose:
+        print(f"Loaded {len(molecules)} molecules")
+        print()
+    
+    # Convert to graphs
+    if verbose:
+        print(f"Converting molecules to graphs...")
+        print(f"  SMILES column: {smiles_col}")
+        print(f"  CID column: {cid_col}")
+        print(f"  Include edge features: {include_edge_features}")
+        print()
+    
+    graph_data = molecules_to_graphs(
+        molecules,
+        smiles_col=smiles_col,
+        cid_col=cid_col,
+        include_edge_features=include_edge_features,
+        verbose=verbose
+    )
+    print()
+    
+    # Save to NPZ
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, 'molecular_graphs.npz')
+    
+    if verbose:
+        print(f"Saving graph data to {output_path}...")
+    np.savez_compressed(output_path, **graph_data)
+    
+    file_size_mb = os.path.getsize(output_path) / (1024 ** 2)
+    if verbose:
+        print(f"Saved! File size: {file_size_mb:.2f} MB")
+        print()
+    
+    # Display statistics
+    if verbose:
+        print("=" * 70)
+        print("Graph Data Statistics")
+        print("=" * 70)
+    
+    stats = graph_statistics(graph_data)
+    
+    if verbose:
+        print(f"\nMolecules:")
+        print(f"  Total molecules: {stats['total_molecules']}")
+        print(f"  Total atoms: {stats['total_atoms']:,}")
+        print(f"  Total bonds: {stats['total_bonds']:,}")
+        
+        print(f"\nAtoms per molecule:")
+        print(f"  Mean: {stats['avg_atoms_per_molecule']:.1f} ± {stats['std_atoms_per_molecule']:.1f}")
+        print(f"  Range: [{stats['min_atoms']}, {stats['max_atoms']}]")
+        
+        print(f"\nBonds per molecule:")
+        print(f"  Mean: {stats['avg_bonds_per_molecule']:.1f} ± {stats['std_bonds_per_molecule']:.1f}")
+        print(f"  Range: [{stats['min_bonds']}, {stats['max_bonds']}]")
+        
+        print(f"\nFeature dimensions:")
+        print(f"  Node features: {stats['node_feature_dim']} dims")
+        if stats['edge_feature_dim'] > 0:
+            print(f"  Edge features: {stats['edge_feature_dim']} dims")
+        else:
+            print(f"  Edge features: Not included")
+        
+        print()
+        print("=" * 70)
+        print("✓ Graph data generation complete!")
+        print("=" * 70)
+        print()
+    
+    return stats
