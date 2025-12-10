@@ -66,14 +66,15 @@ def load_activity_maps(directory_df: pd.DataFrame, data_dir: str = 'data/01_raw'
 
 def compute_global_mask(records: List[ActivityMapRecord], coverage_threshold: float) -> np.ndarray:
     """Compute a global mask based on coverage across maps.
-    coverage_threshold in [0,1] indicates fraction of maps that must have non-NaN/valid entries.
+    coverage_threshold in [0,1] indicates fraction of maps that must have non-zero values.
+    Note: Since NaNs are converted to 0 during loading, we count non-zero pixels.
     """
     if not records:
         raise ValueError("No activity maps provided")
     shape = records[0].map.shape
     valid_counts = np.zeros(shape, dtype=int)
     for r in records:
-        valid_counts += ~np.isnan(r.map)
+        valid_counts += (r.map != 0)  # Count non-zero pixels, not non-NaN
     required = int(coverage_threshold * len(records))
     global_mask = valid_counts >= max(required, 1)
     refined = binary_erosion(binary_dilation(global_mask))
@@ -176,10 +177,11 @@ def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', co
         print(df.head())
     records = load_activity_maps(df, data_dir=data_dir)
     # coverage visualization (before mask)
+    # Count how many maps have non-zero values at each pixel (since we convert NaN to 0 in loading)
     shape = records[0].map.shape if records else (0, 0)
     valid_counts = np.zeros(shape, dtype=int)
     for r in records:
-        valid_counts += ~np.isnan(r.map)
+        valid_counts += (r.map != 0)  # Count non-zero pixels, not non-NaN
     visualize_coverage(valid_counts, os.path.join(output_dir, 'coverage_counts.png'))
     visualize_coverage_histogram(valid_counts, os.path.join(output_dir, 'coverage_histogram.png'))
 
