@@ -24,7 +24,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
 
 # Add project root to path (go up 2 levels from scripts/exploration/)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -65,7 +64,7 @@ def visualize_maps_for_cid(cid: int, data_dir: str = "data/01_raw", save_path: s
         stimuli = load_stimuli_npz(data_dir)
         cid_info = stimuli[stimuli['CID'] == cid]
         molecule_name = cid_info.iloc[0]['Name'] if len(cid_info) > 0 else f"CID {cid}"
-    except:
+    except Exception:
         molecule_name = f"CID {cid}"
     
     # Create figure with subplots for each map
@@ -158,7 +157,7 @@ def load_by_cid(cid: int, data_dir: str = "data/01_raw", show_images: bool = Fal
             print(f"Has {len(maps_for_cid)} activity map(s):\n")
         else:
             print(f"\nCID {cid} has {len(maps_for_cid)} activity map(s):\n")
-    except:
+    except Exception:
         print(f"\nCID {cid} has {len(maps_for_cid)} activity map(s):\n")
     
     for i, (_, row) in enumerate(maps_for_cid.iterrows(), 1):
@@ -185,14 +184,15 @@ def load_by_cid(cid: int, data_dir: str = "data/01_raw", show_images: bool = Fal
     if show_images:
         save_path = None
         if save_images:
-            save_path = os.path.join(data_dir, f'activity_map_CID_{cid}.png')
-        
+            viz_dir = os.path.join('viz', 'maps')
+            os.makedirs(viz_dir, exist_ok=True)
+            save_path = os.path.join(viz_dir, f'activity_map_CID_{cid}.png')
         visualize_maps_for_cid(cid, data_dir, save_path=save_path)
         
         if save_path:
             print(f"\n💡 Visualization saved to: {save_path}")
         else:
-            print(f"\n💡 Close the visualization window to continue...")
+            print("\n💡 Close the visualization window to continue...")
 
 
 def load_by_filename(filename: str, data_dir: str = "data/01_raw"):

@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 from pathlib import Path
 import tempfile
-import shutil
 
 from src.neuro_foundation.data.molecular_graphs import (
     get_atom_features,
@@ -234,9 +233,9 @@ class TestMoleculesToGraphs:
         
         # Should have 3 entries but one is invalid
         assert len(graph_data['valid_mask']) == 3
-        assert graph_data['valid_mask'][0] == True
-        assert graph_data['valid_mask'][1] == False
-        assert graph_data['valid_mask'][2] == True
+        assert graph_data['valid_mask'][0]
+        assert not graph_data['valid_mask'][1]
+        assert graph_data['valid_mask'][2]
     
     def test_num_nodes_tracking(self):
         """Test that number of nodes is tracked correctly."""

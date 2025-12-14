@@ -4,6 +4,7 @@ from pathlib import Path
 # Add parent directory to path so we can import src
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+
 from src.neuro_foundation.pipeline.activity_maps import pipeline_load_and_mask
 
 

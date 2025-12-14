@@ -79,20 +79,20 @@ def usage_examples():
     
     # Load molecules and access SMILES
     molecules = load_molecules_npz()
-    print(f"\nExample 1: Access molecule SMILES")
+    print("\nExample 1: Access molecule SMILES")
     print(f"  First molecule: CID={molecules['CID'].iloc[0]}, "
           f"SMILES={molecules['IsomericSMILES'].iloc[0]}")
     
     # Load behavior and filter by CID
     behavior = load_behavior_npz()
-    print(f"\nExample 2: Filter behavior by specific CID")
+    print("\nExample 2: Filter behavior by specific CID")
     cid = 180
     filtered = behavior[behavior['Stimulus'] == cid]
     print(f"  CID {cid} has {len(filtered)} activity map(s)")
     
     # Load activity maps efficiently
     maps, cids = load_activity_maps_as_arrays()
-    print(f"\nExample 3: Process all activity maps")
+    print("\nExample 3: Process all activity maps")
     print(f"  Total maps: {len(cids)}")
     print(f"  Unique CIDs: {len(set(cids))}")
     print(f"  Map dimensions: {maps.shape[1]}x{maps.shape[2]}")
@@ -103,14 +103,14 @@ def usage_examples():
         load_activity_maps_by_cid,
         load_activity_map_by_cid_averaged
     )
-    print(f"\nExample 4: Load activity maps for a specific CID")
+    print("\nExample 4: Load activity maps for a specific CID")
     maps_for_cid = load_activity_maps_by_cid(180)
     print(f"  CID 180 has {len(maps_for_cid)} maps")
     if maps_for_cid:
         print(f"  First map shape: {maps_for_cid[0].shape}")
         print(f"  Coverage: {(maps_for_cid[0] > 0).mean():.1%}")
     
-    print(f"\nExample 5: Get averaged activity map for a CID")
+    print("\nExample 5: Get averaged activity map for a CID")
     avg_map = load_activity_map_by_cid_averaged(180)
     if avg_map is not None:
         print(f"  Averaged map shape: {avg_map.shape}")

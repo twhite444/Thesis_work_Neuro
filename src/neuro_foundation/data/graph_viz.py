@@ -7,7 +7,6 @@ structures and understanding the featurization.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from pathlib import Path
 from typing import Optional, Union, List
 import os
@@ -35,7 +34,7 @@ except ImportError:
     PY3DMOL_AVAILABLE = False
     print("Warning: py3Dmol not available. Install with: pip install py3Dmol")
 
-from .molecular_graphs import load_graph_data, get_graph_by_cid
+from .molecular_graphs import get_graph_by_cid
 
 
 # Atomic radii (van der Waals) in Angstroms
@@ -529,7 +528,7 @@ def visualize_molecular_graph(
                     )
                     
                     if success:
-                        print(f"✨ 3D visualization created with PyMOL!")
+                        print("✨ 3D visualization created with PyMOL!")
                         print(f"   Saved to: {save_path}")
                         if show:
                             # Open image viewer
@@ -670,7 +669,7 @@ def visualize_molecular_graph(
         
         # Node Features Section
         info_lines.append("╔═══ NODE FEATURES ═══╗")
-        info_lines.append(f"Dimensions: 137")
+        info_lines.append("Dimensions: 137")
         info_lines.append(f"Shape: {graph['node_features'].shape}")
         info_lines.append("")
         info_lines.append("Feature Groups:")
@@ -918,7 +917,7 @@ def print_graph_summary(graph_data: dict) -> None:
     
     # Node statistics
     num_nodes = graph_data['num_nodes']
-    print(f"Nodes (atoms) per molecule:")
+    print("Nodes (atoms) per molecule:")
     print(f"  Mean: {num_nodes.mean():.1f} ± {num_nodes.std():.1f}")
     print(f"  Range: [{num_nodes.min()}, {num_nodes.max()}]")
     print(f"  Total: {num_nodes.sum():,}")
@@ -926,7 +925,7 @@ def print_graph_summary(graph_data: dict) -> None:
     
     # Edge statistics
     num_edges = graph_data['num_edges']
-    print(f"Edges (bonds) per molecule:")
+    print("Edges (bonds) per molecule:")
     print(f"  Mean: {num_edges.mean():.1f} ± {num_edges.std():.1f}")
     print(f"  Range: [{num_edges.min()}, {num_edges.max()}]")
     print(f"  Total: {num_edges.sum():,}")
@@ -941,7 +940,7 @@ def print_graph_summary(graph_data: dict) -> None:
         sample_edge_features = graph_data['edge_attr_list'][sample_idx]
         print(f"Edge feature dimensions: {sample_edge_features.shape[1]}")
     else:
-        print(f"Edge features: Not included")
+        print("Edge features: Not included")
     
     print()
     print("=" * 70)
