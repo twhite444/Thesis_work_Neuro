@@ -520,7 +520,7 @@ def visualize_molecular_graph(
                 try:
                     success = visualize_molecule_3d_pymol(
                         smiles,
-                        output_path=save_path,
+                        output_path=str(save_path),
                         width=1200,
                         height=1200,
                         style='sticks',
