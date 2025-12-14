@@ -105,12 +105,12 @@ python scripts/run_activity_maps.py \
 
 ## 📚 Documentation
 
-- **[API Documentation](API_DOCUMENTATION.md)** - Complete API reference for all modules
-- **[Testing Guide](TESTING_GUIDE.md)** - How to run and write tests
-- **[Visualization Guide](VISUALIZATION_GUIDE.md)** - Using visualization tools
-- **[Quick Reference](QUICK_REFERENCE.md)** - Common commands and workflows
-- **[Directory Structure](DIRECTORY_STRUCTURE.md)** - Project organization
-- **[Final Report](FINAL_REPORT.md)** - Detailed project analysis
+- **[API Documentation](docs/API_DOCUMENTATION.md)** - Complete API reference for all modules
+- **[Testing Guide](docs/TESTING_GUIDE.md)** - How to run and write tests
+- **[Visualization Guide](docs/VISUALIZATION_GUIDE.md)** - Using visualization tools
+- **[Quick Reference](docs/QUICK_REFERENCE.md)** - Common commands and workflows
+- **[Directory Structure](docs/DIRECTORY_STRUCTURE.md)** - Project organization
+- **[Final Report](docs/FINAL_REPORT.md)** - Detailed project analysis
 
 ### Module-Specific READMEs
 
@@ -142,6 +142,11 @@ Thesis_work_Neuro/
 │   ├── examples/                  # Usage examples
 │   └── exploration/               # Data exploration
 ├── tests/                         # Test suite (100% passing)
+├── docs/                          # Documentation
+│   ├── API_DOCUMENTATION.md       # Complete API reference
+│   ├── TESTING_GUIDE.md           # Testing guide
+│   ├── VISUALIZATION_GUIDE.md     # Visualization guide
+│   └── ...                        # Additional documentation
 ├── data/                          # Data storage
 │   ├── 01_raw/                    # Raw downloaded data
 │   └── 02_processed/              # Processed features
@@ -172,7 +177,7 @@ pytest --cov=src/neuro_foundation --cov-report=html
 pytest tests/test_preprocess.py -v
 ```
 
-See [TESTING_GUIDE.md](TESTING_GUIDE.md) for more details.
+See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for more details.
 
 ## 📊 Data
 
@@ -202,7 +207,7 @@ The project includes powerful visualization capabilities:
 - **Batch processing** for multiple maps
 - **Mask visualization** and quality metrics
 
-See [VISUALIZATION_GUIDE.md](VISUALIZATION_GUIDE.md) for examples.
+See [docs/VISUALIZATION_GUIDE.md](docs/VISUALIZATION_GUIDE.md) for examples.
 
 ## 🔬 Use Cases
 
