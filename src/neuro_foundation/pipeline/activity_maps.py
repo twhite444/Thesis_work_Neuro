@@ -170,9 +170,7 @@ def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', co
     Returns:
         Tuple of (averaged_maps, cids, mask)
     """
-    # Create viz directory structure
-    viz_dir = os.path.join('viz', 'maps')
-    os.makedirs(viz_dir, exist_ok=True)
+    # Create output directory for visualizations
     os.makedirs(output_dir, exist_ok=True)
     
     df = load_directory_csv(directory_csv)
@@ -186,18 +184,18 @@ def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', co
     valid_counts = np.zeros(shape, dtype=int)
     for r in records:
         valid_counts += (r.map != 0)  # Count non-zero pixels, not non-NaN
-    visualize_coverage(valid_counts, os.path.join(viz_dir, 'coverage_counts.png'))
-    visualize_coverage_histogram(valid_counts, os.path.join(viz_dir, 'coverage_histogram.png'))
+    visualize_coverage(valid_counts, os.path.join(output_dir, 'coverage_counts.png'))
+    visualize_coverage_histogram(valid_counts, os.path.join(output_dir, 'coverage_histogram.png'))
 
     mask = compute_global_mask(records, coverage_threshold=coverage_threshold)
     masked_records = apply_mask(records, mask)
     averaged_maps, cids = average_by_cid(masked_records)
     # Visualizations
-    visualize_global_mask(mask, os.path.join(viz_dir, 'global_mask.png'))
+    visualize_global_mask(mask, os.path.join(output_dir, 'global_mask.png'))
     # Save example masked maps and a small gallery if available
     if averaged_maps:
         visualize_map(averaged_maps[0], title=f'Masked Averaged Map CID={cids[0]}',
-                      output_path=os.path.join(viz_dir, 'masked_averaged_example.png'))
+                      output_path=os.path.join(output_dir, 'masked_averaged_example.png'))
         # Gallery of up to 6 averaged maps
         n = min(len(averaged_maps), 6)
         cols = 3
@@ -213,6 +211,6 @@ def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', co
         for j in range(n, len(axes)):
             axes[j].axis('off')
         plt.tight_layout()
-        plt.savefig(os.path.join(viz_dir, 'masked_averaged_gallery.png'), dpi=300)
+        plt.savefig(os.path.join(output_dir, 'masked_averaged_gallery.png'), dpi=300)
         plt.close()
     return averaged_maps, cids, mask

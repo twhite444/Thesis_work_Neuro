@@ -144,7 +144,7 @@ class PyrfumeLoader(DatasetLoader):
             behavior = pd.read_csv(behavior_csv)
             print(f"Loaded existing behavior CSV: {behavior_csv}")
         else:
-            print(f"Behavior CSV not found. Loading from Pyrfume...")
+            print("Behavior CSV not found. Loading from Pyrfume...")
             behavior = self.load_behavior()
         
         # Load manifest

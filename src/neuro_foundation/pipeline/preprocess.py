@@ -1,8 +1,6 @@
 from __future__ import annotations
 import os
-from typing import Tuple
 import pandas as pd
-import numpy as np
 from sklearn.preprocessing import StandardScaler
 from pyrfume.features import smiles_to_mordred
 

@@ -10,11 +10,10 @@ Features:
 - Batch processing for entire molecule datasets
 """
 
-from typing import List, Tuple, Optional, Dict, Any
+from typing import Optional, Dict, Any
 import numpy as np
 import pandas as pd
 from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
 import warnings
 
 
@@ -490,7 +489,7 @@ def generate_and_save_molecular_graphs(
     
     # Convert to graphs
     if verbose:
-        print(f"Converting molecules to graphs...")
+        print("Converting molecules to graphs...")
         print(f"  SMILES column: {smiles_col}")
         print(f"  CID column: {cid_col}")
         print(f"  Include edge features: {include_edge_features}")
@@ -527,25 +526,25 @@ def generate_and_save_molecular_graphs(
     stats = graph_statistics(graph_data)
     
     if verbose:
-        print(f"\nMolecules:")
+        print("\nMolecules:")
         print(f"  Total molecules: {stats['total_molecules']}")
         print(f"  Total atoms: {stats['total_atoms']:,}")
         print(f"  Total bonds: {stats['total_bonds']:,}")
         
-        print(f"\nAtoms per molecule:")
+        print("\nAtoms per molecule:")
         print(f"  Mean: {stats['avg_atoms_per_molecule']:.1f} ± {stats['std_atoms_per_molecule']:.1f}")
         print(f"  Range: [{stats['min_atoms']}, {stats['max_atoms']}]")
         
-        print(f"\nBonds per molecule:")
+        print("\nBonds per molecule:")
         print(f"  Mean: {stats['avg_bonds_per_molecule']:.1f} ± {stats['std_bonds_per_molecule']:.1f}")
         print(f"  Range: [{stats['min_bonds']}, {stats['max_bonds']}]")
         
-        print(f"\nFeature dimensions:")
+        print("\nFeature dimensions:")
         print(f"  Node features: {stats['node_feature_dim']} dims")
         if stats['edge_feature_dim'] > 0:
             print(f"  Edge features: {stats['edge_feature_dim']} dims")
         else:
-            print(f"  Edge features: Not included")
+            print("  Edge features: Not included")
         
         print()
         print("=" * 70)
@@ -645,7 +644,7 @@ def load_graph_by_cid(
         if save_path:
             print(f"💡 Visualization saved to: {save_path}")
         else:
-            print(f"💡 Close the visualization window to continue...")
+            print("💡 Close the visualization window to continue...")
     
     return graph
 

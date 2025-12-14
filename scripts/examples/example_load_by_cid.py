@@ -3,7 +3,6 @@
 import sys
 from pathlib import Path
 import numpy as np
-import pandas as pd
 
 # Add project root to path (go up 2 levels from scripts/examples/)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

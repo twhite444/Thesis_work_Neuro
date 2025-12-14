@@ -42,7 +42,7 @@ def test_helper_function():
     print("1b. Load and save visualization")
     print("-" * 50)
     graph = load_graph_by_cid(240, show_image=True, save_image=True)
-    print(f"✓ Loaded and saved visualization for CID 240")
+    print("✓ Loaded and saved visualization for CID 240")
     print()
 
 
@@ -64,10 +64,10 @@ def test_direct_visualization():
         7991,
         graph_data,
         molecules,
-        save_path='data/01_raw/test_viz_7991.png',
+        save_path='viz/molecules/test_viz_7991.png',
         show=False
     )
-    print(f"✓ Saved visualization for CID 7991")
+    print("✓ Saved visualization for CID 7991")
     print()
     
     # Test 2b: Comparison visualization
@@ -77,10 +77,10 @@ def test_direct_visualization():
         180,
         graph_data,
         molecules,
-        save_path='data/01_raw/test_comparison_180.png',
+        save_path='viz/molecules/test_comparison_180.png',
         show=False
     )
-    print(f"✓ Saved comparison visualization for CID 180")
+    print("✓ Saved comparison visualization for CID 180")
     print()
 
 
@@ -109,7 +109,7 @@ def test_statistics():
     print(f"Avg atoms/molecule: {stats['avg_atoms_per_molecule']:.1f}")
     print(f"Node feature dims: {stats['node_feature_dim']}")
     print(f"Edge feature dims: {stats['edge_feature_dim']}")
-    print(f"✓ Statistics retrieved successfully")
+    print("✓ Statistics retrieved successfully")
     print()
 
 

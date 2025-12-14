@@ -2,7 +2,6 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-import pandas as pd
 
 # Add parent directory to path so we can import src
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -11,7 +10,6 @@ from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
 from src.neuro_foundation.data.pyrfume_loader import (
     PyrfumeLoader,
     load_molecules_npz,
-    load_molecules_csv,
 )
 
 
