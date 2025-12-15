@@ -28,8 +28,6 @@ def main():
     # Model arguments
     parser.add_argument('--model', type=str, required=True, choices=['mlp', 'cnn'],
                         help='Model architecture (mlp or cnn)')
-    parser.add_argument('--features', type=str, default='ecfp', choices=['ecfp', 'rdkit', 'both'],
-                        help='Molecular feature type')
     
     # Training arguments  
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
@@ -37,8 +35,10 @@ def main():
     parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate')
     
     # Data arguments
-    parser.add_argument('--data-dir', type=str, default='legacy/output_data', 
-                        help='Directory containing data files')
+    parser.add_argument('--processed-dir', type=str, default='data/02_processed', 
+                        help='Directory containing processed features')
+    parser.add_argument('--raw-data-dir', type=str, default='data',
+                        help='Directory containing raw data (selected_maps.csv, etc.)')
     parser.add_argument('--output-dir', type=str, default='experiments/baseline_nn',
                         help='Directory to save outputs')
     
@@ -49,11 +49,11 @@ def main():
     
     args = parser.parse_args()
     
-    # Get dataloaders
-    print("Loading data...")
+    # Get dataloaders (using pre-computed features)
+    print("Loading pre-computed features...")
     train_loader, val_loader, test_loader = get_dataloaders(
-        data_dir=args.data_dir,
-        feature_type=args.features,
+        processed_dir=args.processed_dir,
+        raw_data_dir=args.raw_data_dir,
         batch_size=args.batch_size,
     )
     
@@ -61,7 +61,6 @@ def main():
     print(f"Creating {args.model.upper()} model...")
     model = get_model(
         model_type=args.model,
-        feature_type=args.features,
         input_dim=train_loader.dataset.feature_dim,
         output_shape=(79, 43),
     )

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional, Union, List
 import os
 
+
 try:
     from rdkit import Chem
     from rdkit.Chem import Draw, AllChem

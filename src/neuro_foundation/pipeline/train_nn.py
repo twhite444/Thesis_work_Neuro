@@ -216,7 +216,7 @@ def train_nn(
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=10, verbose=verbose
+        optimizer, mode='min', factor=0.5, patience=10
     )
     
     # Tensorboard logging

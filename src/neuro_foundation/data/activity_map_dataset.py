@@ -1,4 +1,8 @@
-"""PyTorch datasets for molecular structure to activity map prediction."""
+"""PyTorch datasets for molecular structure to activity map prediction.
+
+Uses pre-computed and selected features from data/02_processed/selected_features.csv
+instead of computing features on the fly.
+"""
 
 import os
 from pathlib import Path
@@ -8,22 +12,21 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
 
 
 class MoleculeActivityMapDataset(Dataset):
     """Dataset for molecular structure → activity map prediction.
     
     Loads:
-    - Molecular structures (SMILES) and computes features (ECFP fingerprints or descriptors)
-    - Activity maps (79×43 spatial patterns) from selected_maps.csv
+    - Pre-computed molecular features from data/02_processed/selected_features.csv
+    - Activity maps (79×43 spatial patterns) from data/selected_maps.csv
+    
+    Features are already standardized and variance-selected (268 features).
+    CID is used as the index to align features with activity maps.
     
     Args:
-        data_dir: Root data directory containing molecules.csv, selected_maps.csv, etc.
-        feature_type: Type of molecular features ('ecfp', 'rdkit', 'morgan')
-        ecfp_radius: Radius for ECFP fingerprints (default: 2)
-        ecfp_bits: Number of bits for ECFP fingerprints (default: 2048)
+        processed_dir: Directory containing processed data (default: data/02_processed)
+        raw_data_dir: Directory containing raw data like selected_maps.csv (default: data)
         transform: Optional transform to apply to activity maps
         split: Which split to use ('train', 'val', 'test', or None for all data)
         random_seed: Random seed for reproducible splits (default: 42)
@@ -31,20 +34,16 @@ class MoleculeActivityMapDataset(Dataset):
     
     def __init__(
         self,
-        data_dir: str = "data/01_raw",
-        feature_type: str = "ecfp",
-        ecfp_radius: int = 2,
-        ecfp_bits: int = 2048,
+        processed_dir: str = "data/02_processed",
+        raw_data_dir: str = "data",
         transform: Optional[callable] = None,
         split: Optional[str] = None,
         random_seed: int = 42,
     ):
         super().__init__()
         
-        self.data_dir = Path(data_dir)
-        self.feature_type = feature_type
-        self.ecfp_radius = ecfp_radius
-        self.ecfp_bits = ecfp_bits
+        self.processed_dir = Path(processed_dir)
+        self.raw_data_dir = Path(raw_data_dir)
         self.transform = transform
         self.split = split
         self.random_seed = random_seed
@@ -56,26 +55,47 @@ class MoleculeActivityMapDataset(Dataset):
         if split is not None:
             self._apply_split()
     
+    @property
+    def feature_dim(self):
+        """Return the number of input features."""
+        return self.features.shape[1]
+    
+    
     def _load_data(self):
-        """Load molecular structures and activity maps."""
-        # Load selected maps
-        selected_maps = pd.read_csv(self.data_dir / "selected_maps.csv")
+        """Load pre-computed molecular features and activity map metadata."""
+        # Load pre-computed selected features (CID as index)
+        features_path = self.processed_dir / "selected_features.csv"
+        if not features_path.exists():
+            raise FileNotFoundError(
+                f"Selected features not found at {features_path}. "
+                "Run 'python scripts/preprocess.py' and 'python scripts/select_features.py' first."
+            )
         
-        # Load molecules
-        molecules = pd.read_csv(self.data_dir / "molecules.csv")
+        self.features = pd.read_csv(features_path, index_col='CID')
+        
+        # Load selected maps metadata
+        maps_path = self.raw_data_dir / "selected_maps.csv"
+        if not maps_path.exists():
+            raise FileNotFoundError(f"Selected maps not found at {maps_path}")
+        
+        selected_maps = pd.read_csv(maps_path)
         
         # Load behavior data to get activity map paths
-        behavior = pd.read_csv(self.data_dir / "behavior_data.csv")
+        behavior_path = self.raw_data_dir / "01_raw" / "behavior_data.csv"
+        if not behavior_path.exists():
+            behavior_path = Path("data/01_raw/behavior_data.csv")
         
-        # Merge to get molecule info with selected maps
+        behavior = pd.read_csv(behavior_path)
+        
+        # Merge features with maps metadata using CID
         self.data = selected_maps.merge(
-            molecules[['CID', 'SMILES', 'InChIKey']], 
-            on='CID', 
-            how='left'
+            self.features,
+            left_on='CID',
+            right_index=True,
+            how='inner'
         )
         
-        # Get activity map paths for selected maps
-        # For each CID, get the map at index selected_idx
+        # Get activity map paths for each molecule
         map_paths = []
         for _, row in self.data.iterrows():
             cid = row['CID']
@@ -92,10 +112,10 @@ class MoleculeActivityMapDataset(Dataset):
         
         self.data['activity_map_path'] = map_paths
         
-        # Remove entries with missing SMILES or activity maps
-        self.data = self.data.dropna(subset=['SMILES', 'activity_map_path']).reset_index(drop=True)
+        # Remove entries with missing activity maps
+        self.data = self.data.dropna(subset=['activity_map_path']).reset_index(drop=True)
         
-        print(f"Loaded {len(self.data)} molecules with activity maps")
+        print(f"Loaded {len(self.data)} molecules with {self.feature_dim} features each")
     
     def _apply_split(self):
         """Apply train/val/test split."""
@@ -124,56 +144,6 @@ class MoleculeActivityMapDataset(Dataset):
         self.data = self.data.iloc[split_indices].reset_index(drop=True)
         print(f"{self.split.capitalize()} split: {len(self.data)} samples")
     
-    def _compute_ecfp_features(self, smiles: str) -> np.ndarray:
-        """Compute ECFP (Extended Connectivity Fingerprints) features.
-        
-        Args:
-            smiles: SMILES string
-            
-        Returns:
-            ECFP fingerprint as numpy array
-        """
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            return np.zeros(self.ecfp_bits)
-        
-        fp = AllChem.GetMorganFingerprintAsBitVect(
-            mol, 
-            radius=self.ecfp_radius, 
-            nBits=self.ecfp_bits
-        )
-        return np.array(fp)
-    
-    def _compute_rdkit_features(self, smiles: str) -> np.ndarray:
-        """Compute RDKit molecular descriptors.
-        
-        Args:
-            smiles: SMILES string
-            
-        Returns:
-            RDKit descriptors as numpy array
-        """
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            return np.zeros(200)  # Default descriptor count
-        
-        # Compute all RDKit descriptors
-        descriptor_names = [desc[0] for desc in Descriptors._descList]
-        descriptors = []
-        
-        for name in descriptor_names:
-            try:
-                desc_fn = getattr(Descriptors, name)
-                value = desc_fn(mol)
-                # Handle NaN values
-                if np.isnan(value) or np.isinf(value):
-                    value = 0.0
-                descriptors.append(value)
-            except:
-                descriptors.append(0.0)
-        
-        return np.array(descriptors, dtype=np.float32)
-    
     def _load_activity_map(self, map_filename: str) -> np.ndarray:
         """Load activity map from CSV file.
         
@@ -183,15 +153,21 @@ class MoleculeActivityMapDataset(Dataset):
         Returns:
             Activity map as numpy array (79, 43)
         """
-        map_path = self.data_dir / "activity_maps_csv" / map_filename
+        # Try multiple possible locations for activity maps
+        possible_paths = [
+            Path("data/01_raw/activity_maps_csv") / map_filename,
+            self.raw_data_dir / "01_raw" / "activity_maps_csv" / map_filename,
+            self.raw_data_dir / "activity_maps_csv" / map_filename,
+        ]
         
-        if not map_path.exists():
-            return np.zeros((79, 43), dtype=np.float32)
+        for map_path in possible_paths:
+            if map_path.exists():
+                activity_map = pd.read_csv(map_path, index_col=0)
+                return activity_map.values.astype(np.float32)
         
-        # Load CSV
-        activity_map = pd.read_csv(map_path, index_col=0)
-        
-        return activity_map.values.astype(np.float32)
+        # If not found, return zeros
+        print(f"Warning: Activity map not found: {map_filename}")
+        return np.zeros((79, 43), dtype=np.float32)
     
     def __len__(self) -> int:
         """Return number of samples in dataset."""
@@ -205,20 +181,16 @@ class MoleculeActivityMapDataset(Dataset):
             
         Returns:
             Tuple of (features, activity_map, metadata)
-            - features: Molecular features (tensor)
+            - features: Pre-computed molecular features (268-dim tensor)
             - activity_map: Activity map (79, 43 tensor)
-            - metadata: Dict with CID, SMILES, Name, etc.
+            - metadata: Dict with CID, Name, coverage, etc.
         """
         row = self.data.iloc[idx]
         
-        # Compute molecular features
-        smiles = row['SMILES']
-        if self.feature_type == 'ecfp':
-            features = self._compute_ecfp_features(smiles)
-        elif self.feature_type == 'rdkit':
-            features = self._compute_rdkit_features(smiles)
-        else:
-            raise ValueError(f"Unknown feature type: {self.feature_type}")
+        # Get pre-computed features for this molecule
+        # Features are in columns after the metadata columns
+        feature_cols = self.features.columns
+        features = row[feature_cols].values.astype(np.float32)
         
         # Load activity map
         map_filename = os.path.basename(row['activity_map_path'])
@@ -236,7 +208,6 @@ class MoleculeActivityMapDataset(Dataset):
         metadata = {
             'CID': int(row['CID']),
             'Name': row['Name'],
-            'SMILES': smiles,
             'coverage_frac': float(row['coverage_frac']),
             'mean_active': float(row['mean_active']),
         }
@@ -245,17 +216,20 @@ class MoleculeActivityMapDataset(Dataset):
 
 
 def get_dataloaders(
-    data_dir: str = "data/01_raw",
-    feature_type: str = "ecfp",
+    processed_dir: str = "data/02_processed",
+    raw_data_dir: str = "data",
     batch_size: int = 32,
     num_workers: int = 4,
     random_seed: int = 42,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
-    """Create train, validation, and test dataloaders.
+    """Create train, validation, and test dataloaders using pre-computed features.
     
     Args:
-        data_dir: Root data directory
-        feature_type: Type of molecular features ('ecfp' or 'rdkit')
+        processed_dir: Directory containing processed features
+        raw_data_dir: Directory containing raw data (selected_maps.csv, etc.)
+        batch_size: Batch size for dataloaders
+        num_workers: Number of worker processes for data loading
+        random_seed: Random seed for reproducible splits
         batch_size: Batch size for dataloaders
         num_workers: Number of worker processes for data loading
         random_seed: Random seed for reproducible splits
@@ -265,8 +239,8 @@ def get_dataloaders(
         
     Example:
         >>> train_loader, val_loader, test_loader = get_dataloaders(
-        ...     data_dir="data/01_raw",
-        ...     feature_type="ecfp",
+        ...     processed_dir="data/02_processed",
+        ...     raw_data_dir="data",
         ...     batch_size=32
         ... )
     """
@@ -274,22 +248,22 @@ def get_dataloaders(
     
     # Create datasets for each split
     train_dataset = MoleculeActivityMapDataset(
-        data_dir=data_dir,
-        feature_type=feature_type,
+        processed_dir=processed_dir,
+        raw_data_dir=raw_data_dir,
         split='train',
         random_seed=random_seed,
     )
     
     val_dataset = MoleculeActivityMapDataset(
-        data_dir=data_dir,
-        feature_type=feature_type,
+        processed_dir=processed_dir,
+        raw_data_dir=raw_data_dir,
         split='val',
         random_seed=random_seed,
     )
     
     test_dataset = MoleculeActivityMapDataset(
-        data_dir=data_dir,
-        feature_type=feature_type,
+        processed_dir=processed_dir,
+        raw_data_dir=raw_data_dir,
         split='test',
         random_seed=random_seed,
     )
