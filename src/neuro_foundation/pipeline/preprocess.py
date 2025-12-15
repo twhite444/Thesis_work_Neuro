@@ -8,14 +8,18 @@ from pyrfume.features import smiles_to_mordred
 def featurize_and_standardize(molecules: pd.DataFrame, output_dir: str = "data/02_processed") -> pd.DataFrame:
     """Featurize SMILES to Mordred, drop NaNs and zero-only columns, and standardize.
 
-    Saves cleaned_data.csv and returns the standardized DataFrame.
+    Saves cleaned_data.csv with CID as index and returns the standardized DataFrame.
     """
     os.makedirs(output_dir, exist_ok=True)
 
     if 'IsomericSMILES' not in molecules.columns:
         raise ValueError("Expected 'IsomericSMILES' column in molecules")
+    if 'CID' not in molecules.columns:
+        raise ValueError("Expected 'CID' column in molecules")
 
     smiles = molecules['IsomericSMILES'].tolist()
+    cids = molecules['CID'].values
+    
     mordred_features = smiles_to_mordred(smiles)
 
     # Drop columns with any NaN
@@ -26,10 +30,11 @@ def featurize_and_standardize(molecules: pd.DataFrame, output_dir: str = "data/0
 
     scaler = StandardScaler()
     standardized = scaler.fit_transform(filtered)
-    standardized_df = pd.DataFrame(standardized, columns=filtered.columns)
+    standardized_df = pd.DataFrame(standardized, columns=filtered.columns, index=cids)
+    standardized_df.index.name = 'CID'
 
     cleaned_path = os.path.join(output_dir, 'cleaned_data.csv')
-    standardized_df.to_csv(cleaned_path, index=False)
+    standardized_df.to_csv(cleaned_path, index=True)
 
     # Persist scaler stats for reproducibility
     stats = {

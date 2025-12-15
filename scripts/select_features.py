@@ -11,7 +11,8 @@ from src.neuro_foundation.pipeline.feature_select import select_features
 
 
 def main(input_csv: str, threshold: float, output_dir: str):
-    df = pd.read_csv(input_csv)
+    # Load with CID as index
+    df = pd.read_csv(input_csv, index_col='CID')
     selected_df = select_features(df, threshold=threshold, output_dir=output_dir)
     print(f"Saved selected features to {output_dir}/selected_features.csv ({selected_df.shape})")
 
