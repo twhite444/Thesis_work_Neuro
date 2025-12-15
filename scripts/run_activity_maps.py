@@ -1,34 +1,130 @@
+#!/usr/bin/env python3
+"""Process activity maps: select and mask maps for each CID.
+
+This script runs the complete activity maps preprocessing pipeline:
+1. Loads all activity maps from CSV files
+2. Computes global mask based on coverage threshold
+3. Applies mask to all maps
+4. Selects one map per CID using specified strategy
+5. Saves processed maps for training
+
+Usage examples:
+    # Default: best quality selection, 50% coverage
+    python scripts/run_activity_maps.py
+    
+    # Use averaging instead
+    python scripts/run_activity_maps.py --strategy average
+    
+    # Stricter masking (80% coverage required)
+    python scripts/run_activity_maps.py --coverage-threshold 0.8
+    
+    # Median selection (robust to outliers)
+    python scripts/run_activity_maps.py --strategy median
+    
+    # Quick test without visualizations
+    python scripts/run_activity_maps.py --strategy first --no-visualizations
+"""
 import argparse
 import sys
 from pathlib import Path
+
 # Add parent directory to path so we can import src
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-
-from src.neuro_foundation.pipeline.activity_maps import pipeline_load_and_mask
+from src.neuro_foundation.pipeline.activity_maps import (
+    process_activity_maps,
+    SelectionStrategy,
+)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run activity maps load+mask pipeline using local data.')
-    parser.add_argument('--directory-csv', type=str, default='data/01_raw/behavior_data.csv', 
-                       help='Path to behavior/activity CSV')
-    parser.add_argument('--data-dir', type=str, default='data/01_raw', 
-                       help='Directory containing activity_maps_csv/ folder')
-    parser.add_argument('--coverage-threshold', type=float, default=0.5, 
-                       help='Fraction of maps required to consider a pixel covered')
-    parser.add_argument('--output-dir', type=str, default='data/02_processed', 
-                       help='Directory to save outputs')
-    parser.add_argument('--verbose', action='store_true', help='Print directory info')
+    parser = argparse.ArgumentParser(
+        description='Process activity maps: select and mask maps for each CID',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Default: best quality selection, 50%% coverage
+  python scripts/run_activity_maps.py
+  
+  # Use averaging instead
+  python scripts/run_activity_maps.py --strategy average
+  
+  # Stricter masking (80%% coverage required)
+  python scripts/run_activity_maps.py --coverage-threshold 0.8
+  
+  # Median selection (robust to outliers)
+  python scripts/run_activity_maps.py --strategy median
+  
+  # Quick test without visualizations
+  python scripts/run_activity_maps.py --strategy first --no-visualizations
+        """
+    )
+    
+    # Input/output paths
+    parser.add_argument('--directory-csv', type=str,
+                       default='data/01_raw/behavior_data.csv',
+                       help='Behavior CSV with activity map paths')
+    parser.add_argument('--data-dir', type=str,
+                       default='data/01_raw',
+                       help='Directory with activity_maps_csv/ folder')
+    parser.add_argument('--output-dir', type=str,
+                       default='data/02_processed',
+                       help='Output directory for processed maps')
+    
+    # Selection strategy
+    parser.add_argument('--strategy', type=str,
+                       default='best_quality',
+                       choices=['best_quality', 'average', 'median', 'first'],
+                       help='Map selection strategy (default: best_quality)')
+    
+    # Global mask parameters
+    parser.add_argument('--coverage-threshold', type=float,
+                       default=0.5,
+                       help='Fraction of maps required for mask: 0.0-1.0 (default: 0.5)')
+    parser.add_argument('--min-region-size', type=int,
+                       default=100,
+                       help='Minimum connected region size in pixels (default: 100)')
+    
+    # Options
+    parser.add_argument('--no-visualizations', action='store_true',
+                       help='Skip generating visualization plots')
+    parser.add_argument('--verbose', action='store_true',
+                       help='Print detailed information')
+    
     args = parser.parse_args()
-
-    maps, cids, mask = pipeline_load_and_mask(
+    
+    # Validate coverage threshold
+    if not 0.0 <= args.coverage_threshold <= 1.0:
+        parser.error("Coverage threshold must be between 0.0 and 1.0")
+    
+    # Run processing pipeline
+    results = process_activity_maps(
         directory_csv=args.directory_csv,
         data_dir=args.data_dir,
-        coverage_threshold=args.coverage_threshold,
         output_dir=args.output_dir,
+        selection_strategy=SelectionStrategy(args.strategy),
+        coverage_threshold=args.coverage_threshold,
+        min_region_size=args.min_region_size,
+        save_visualizations=not args.no_visualizations,
         verbose=args.verbose,
     )
-    print(f"Averaged maps: {len(maps)} | Unique CIDs: {len(cids)} | Mask shape: {mask.shape}")
+    
+    # Print summary
+    print("\n" + "="*80)
+    print("PROCESSING SUMMARY")
+    print("="*80)
+    print(f"Molecules processed: {results['n_molecules']}")
+    print(f"Selection strategy:  {results['selection_strategy']}")
+    print(f"Coverage threshold:  {results['coverage_threshold']}")
+    print(f"Mask coverage:       {results['mask_coverage']:.2%}")
+    print("="*80)
+    print(f"\nOutputs saved to: {args.output_dir}/")
+    print(f"  - processed_maps.npz (maps and CIDs)")
+    print(f"  - processed_maps_metadata.csv (metadata)")
+    print(f"  - global_mask.npy (reusable mask)")
+    if not args.no_visualizations:
+        print(f"  - visualizations (PNG files)")
+    print("="*80)
 
 
 if __name__ == '__main__':

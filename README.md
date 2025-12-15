@@ -8,7 +8,7 @@ A modular, well-tested foundation for neuroscience molecular data analysis, supp
 
 ## 📋 Overview
 
-This project provides tools for analyzing molecular odorant data and neural activity maps from the Pyrfume database. It supports two complementary approaches:
+This project provides tools for analyzing molecular odorant data and neural activity maps from the Pyrfume database. It supports multiple complementary approaches:
 
 ### 1. **Classical ML Pipeline** (Mordred Descriptors)
 - Fixed-size molecular descriptors (1613 features)
@@ -22,6 +22,14 @@ This project provides tools for analyzing molecular odorant data and neural acti
 - 10-dimensional edge features (bond properties)
 - Advanced visualization tools
 - Ready for Graph Neural Networks (GNNs)
+
+### 3. **Activity Maps Pipeline** ✨ NEW!
+- Pre-processes brain activity maps (79×43 spatial patterns)
+- **4 selection strategies**: best_quality, average, median, first
+- **Configurable masking**: adjust coverage threshold (0.0-1.0)
+- **Efficient storage**: NPZ format (1.5 MB vs 50 MB CSVs)
+- **Separate from molecule preprocessing**: works with both descriptors and graphs
+- See: [`docs/ACTIVITY_MAPS_PIPELINE.md`](docs/ACTIVITY_MAPS_PIPELINE.md) for details
 
 ## 🚀 Quick Start
 
@@ -96,15 +104,28 @@ python scripts/visualize_graphs.py --summary
 #### Activity Map Processing
 
 ```bash
-# Process and visualize neural activity maps
-python scripts/run_activity_maps.py \
-    --output-dir viz/maps \
-    --cids 180 240 7991 \
-    --show
+# 1. Process activity maps (select best, apply mask, save)
+python scripts/run_activity_maps.py
+
+# 2. Try different selection strategies
+python scripts/run_activity_maps.py --strategy average
+python scripts/run_activity_maps.py --strategy median
+
+# 3. Adjust coverage threshold
+python scripts/run_activity_maps.py --coverage-threshold 0.7  # Stricter
+python scripts/run_activity_maps.py --coverage-threshold 0.3  # Lenient
+
+# 4. Train neural networks using processed maps
+python scripts/train_baseline_nn.py --model mlp --epochs 100
+python scripts/train_baseline_nn.py --model cnn --epochs 100
+
+# See docs/ACTIVITY_MAPS_PIPELINE.md for full guide
 ```
 
 ## 📚 Documentation
 
+- **[Activity Maps Pipeline](docs/ACTIVITY_MAPS_PIPELINE.md)** - Complete guide to map preprocessing ✨ NEW
+- **[Quick Start Guide](docs/QUICK_START.md)** - Fast reference for activity maps ✨ NEW
 - **[API Documentation](docs/API_DOCUMENTATION.md)** - Complete API reference for all modules
 - **[Testing Guide](docs/TESTING_GUIDE.md)** - How to run and write tests
 - **[Visualization Guide](docs/VISUALIZATION_GUIDE.md)** - Using visualization tools

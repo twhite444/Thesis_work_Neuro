@@ -36,9 +36,7 @@ def main():
     
     # Data arguments
     parser.add_argument('--processed-dir', type=str, default='data/02_processed', 
-                        help='Directory containing processed features')
-    parser.add_argument('--raw-data-dir', type=str, default='data',
-                        help='Directory containing raw data (selected_maps.csv, etc.)')
+                        help='Directory containing processed features and maps')
     parser.add_argument('--output-dir', type=str, default='experiments/baseline_nn',
                         help='Directory to save outputs')
     
@@ -49,11 +47,10 @@ def main():
     
     args = parser.parse_args()
     
-    # Get dataloaders (using pre-computed features)
-    print("Loading pre-computed features...")
+    # Get dataloaders (using pre-processed data)
+    print("Loading pre-processed features and maps...")
     train_loader, val_loader, test_loader = get_dataloaders(
         processed_dir=args.processed_dir,
-        raw_data_dir=args.raw_data_dir,
         batch_size=args.batch_size,
     )
     

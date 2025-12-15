@@ -1,7 +1,10 @@
 """PyTorch datasets for molecular structure to activity map prediction.
 
-Uses pre-computed and selected features from data/02_processed/selected_features.csv
-instead of computing features on the fly.
+Uses:
+- Pre-computed molecular features from data/02_processed/selected_features.csv
+- Pre-processed activity maps from data/02_processed/processed_maps.npz
+
+Both are already selected (one per CID), masked (global mask applied), and aligned.
 """
 
 import os
@@ -19,14 +22,14 @@ class MoleculeActivityMapDataset(Dataset):
     
     Loads:
     - Pre-computed molecular features from data/02_processed/selected_features.csv
-    - Activity maps (79×43 spatial patterns) from data/selected_maps.csv
+    - Pre-processed activity maps from data/02_processed/processed_maps.npz
     
     Features are already standardized and variance-selected (268 features).
-    CID is used as the index to align features with activity maps.
+    Maps are already selected (one per CID) and masked (global mask applied).
+    CID is used to align features with activity maps.
     
     Args:
         processed_dir: Directory containing processed data (default: data/02_processed)
-        raw_data_dir: Directory containing raw data like selected_maps.csv (default: data)
         transform: Optional transform to apply to activity maps
         split: Which split to use ('train', 'val', 'test', or None for all data)
         random_seed: Random seed for reproducible splits (default: 42)
@@ -35,7 +38,6 @@ class MoleculeActivityMapDataset(Dataset):
     def __init__(
         self,
         processed_dir: str = "data/02_processed",
-        raw_data_dir: str = "data",
         transform: Optional[callable] = None,
         split: Optional[str] = None,
         random_seed: int = 42,
@@ -43,7 +45,6 @@ class MoleculeActivityMapDataset(Dataset):
         super().__init__()
         
         self.processed_dir = Path(processed_dir)
-        self.raw_data_dir = Path(raw_data_dir)
         self.transform = transform
         self.split = split
         self.random_seed = random_seed
@@ -62,7 +63,7 @@ class MoleculeActivityMapDataset(Dataset):
     
     
     def _load_data(self):
-        """Load pre-computed molecular features and activity map metadata."""
+        """Load pre-computed molecular features and pre-processed activity maps."""
         # Load pre-computed selected features (CID as index)
         features_path = self.processed_dir / "selected_features.csv"
         if not features_path.exists():
@@ -73,49 +74,34 @@ class MoleculeActivityMapDataset(Dataset):
         
         self.features = pd.read_csv(features_path, index_col='CID')
         
-        # Load selected maps metadata
-        maps_path = self.raw_data_dir / "selected_maps.csv"
+        # Load pre-processed activity maps
+        maps_path = self.processed_dir / "processed_maps.npz"
         if not maps_path.exists():
-            raise FileNotFoundError(f"Selected maps not found at {maps_path}")
+            raise FileNotFoundError(
+                f"Processed maps not found at {maps_path}. "
+                "Run 'python scripts/run_activity_maps.py' first to generate processed maps."
+            )
         
-        selected_maps = pd.read_csv(maps_path)
+        maps_data = np.load(maps_path)
+        self.maps = maps_data['maps']  # (n_molecules, 79, 43)
+        self.map_cids = maps_data['cids']
         
-        # Load behavior data to get activity map paths
-        behavior_path = self.raw_data_dir / "01_raw" / "behavior_data.csv"
-        if not behavior_path.exists():
-            behavior_path = Path("data/01_raw/behavior_data.csv")
+        # Align features with maps using CID
+        common_cids = np.intersect1d(self.features.index, self.map_cids)
         
-        behavior = pd.read_csv(behavior_path)
+        if len(common_cids) == 0:
+            raise ValueError(
+                "No common CIDs found between features and maps. "
+                "Regenerate both processed_maps.npz and selected_features.csv"
+            )
         
-        # Merge features with maps metadata using CID
-        self.data = selected_maps.merge(
-            self.features,
-            left_on='CID',
-            right_index=True,
-            how='inner'
-        )
+        # Filter and align
+        self.features = self.features.loc[common_cids]
+        map_indices = [np.where(self.map_cids == cid)[0][0] for cid in common_cids]
+        self.maps = self.maps[map_indices]
+        self.cids = common_cids
         
-        # Get activity map paths for each molecule
-        map_paths = []
-        for _, row in self.data.iterrows():
-            cid = row['CID']
-            selected_idx = int(row['selected_idx'])
-            
-            # Get all maps for this CID
-            cid_maps = behavior[behavior['Stimulus'] == cid]
-            
-            if len(cid_maps) > selected_idx:
-                map_path = cid_maps.iloc[selected_idx]['Activity Map Path']
-                map_paths.append(map_path)
-            else:
-                map_paths.append(None)
-        
-        self.data['activity_map_path'] = map_paths
-        
-        # Remove entries with missing activity maps
-        self.data = self.data.dropna(subset=['activity_map_path']).reset_index(drop=True)
-        
-        print(f"Loaded {len(self.data)} molecules with {self.feature_dim} features each")
+        print(f"Loaded {len(self.cids)} molecules with {self.feature_dim} features and aligned maps")
     
     def _apply_split(self):
         """Apply train/val/test split."""
@@ -126,7 +112,7 @@ class MoleculeActivityMapDataset(Dataset):
         np.random.seed(self.random_seed)
         
         # Create split indices
-        n_samples = len(self.data)
+        n_samples = len(self.features)
         indices = np.arange(n_samples)
         np.random.shuffle(indices)
         
@@ -141,37 +127,16 @@ class MoleculeActivityMapDataset(Dataset):
         else:  # test
             split_indices = indices[val_end:]
         
-        self.data = self.data.iloc[split_indices].reset_index(drop=True)
-        print(f"{self.split.capitalize()} split: {len(self.data)} samples")
-    
-    def _load_activity_map(self, map_filename: str) -> np.ndarray:
-        """Load activity map from CSV file.
+        # Apply split
+        self.features = self.features.iloc[split_indices].reset_index(drop=True)
+        self.maps = self.maps[split_indices]
+        self.cids = self.cids[split_indices]
         
-        Args:
-            map_filename: Filename of activity map CSV
-            
-        Returns:
-            Activity map as numpy array (79, 43)
-        """
-        # Try multiple possible locations for activity maps
-        possible_paths = [
-            Path("data/01_raw/activity_maps_csv") / map_filename,
-            self.raw_data_dir / "01_raw" / "activity_maps_csv" / map_filename,
-            self.raw_data_dir / "activity_maps_csv" / map_filename,
-        ]
-        
-        for map_path in possible_paths:
-            if map_path.exists():
-                activity_map = pd.read_csv(map_path, index_col=0)
-                return activity_map.values.astype(np.float32)
-        
-        # If not found, return zeros
-        print(f"Warning: Activity map not found: {map_filename}")
-        return np.zeros((79, 43), dtype=np.float32)
+        print(f"{self.split.capitalize()} split: {len(self.cids)} samples")
     
     def __len__(self) -> int:
         """Return number of samples in dataset."""
-        return len(self.data)
+        return len(self.features)
     
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         """Get a single sample.
@@ -182,19 +147,14 @@ class MoleculeActivityMapDataset(Dataset):
         Returns:
             Tuple of (features, activity_map, metadata)
             - features: Pre-computed molecular features (268-dim tensor)
-            - activity_map: Activity map (79, 43 tensor)
-            - metadata: Dict with CID, Name, coverage, etc.
+            - activity_map: Pre-processed activity map (79, 43 tensor)
+            - metadata: Dict with CID and index
         """
-        row = self.data.iloc[idx]
+        # Get pre-computed features
+        features = self.features.iloc[idx].values.astype(np.float32)
         
-        # Get pre-computed features for this molecule
-        # Features are in columns after the metadata columns
-        feature_cols = self.features.columns
-        features = row[feature_cols].values.astype(np.float32)
-        
-        # Load activity map
-        map_filename = os.path.basename(row['activity_map_path'])
-        activity_map = self._load_activity_map(map_filename)
+        # Get pre-processed activity map (already selected and masked)
+        activity_map = self.maps[idx].astype(np.float32)
         
         # Apply transform if specified
         if self.transform is not None:
@@ -206,10 +166,8 @@ class MoleculeActivityMapDataset(Dataset):
         
         # Metadata
         metadata = {
-            'CID': int(row['CID']),
-            'Name': row['Name'],
-            'coverage_frac': float(row['coverage_frac']),
-            'mean_active': float(row['mean_active']),
+            'cid': int(self.cids[idx]),
+            'index': idx,
         }
         
         return features, activity_map, metadata
@@ -217,19 +175,14 @@ class MoleculeActivityMapDataset(Dataset):
 
 def get_dataloaders(
     processed_dir: str = "data/02_processed",
-    raw_data_dir: str = "data",
     batch_size: int = 32,
     num_workers: int = 4,
     random_seed: int = 42,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
-    """Create train, validation, and test dataloaders using pre-computed features.
+    """Create train, validation, and test dataloaders using pre-processed data.
     
     Args:
-        processed_dir: Directory containing processed features
-        raw_data_dir: Directory containing raw data (selected_maps.csv, etc.)
-        batch_size: Batch size for dataloaders
-        num_workers: Number of worker processes for data loading
-        random_seed: Random seed for reproducible splits
+        processed_dir: Directory containing processed features and maps
         batch_size: Batch size for dataloaders
         num_workers: Number of worker processes for data loading
         random_seed: Random seed for reproducible splits
@@ -240,7 +193,6 @@ def get_dataloaders(
     Example:
         >>> train_loader, val_loader, test_loader = get_dataloaders(
         ...     processed_dir="data/02_processed",
-        ...     raw_data_dir="data",
         ...     batch_size=32
         ... )
     """
@@ -249,21 +201,18 @@ def get_dataloaders(
     # Create datasets for each split
     train_dataset = MoleculeActivityMapDataset(
         processed_dir=processed_dir,
-        raw_data_dir=raw_data_dir,
         split='train',
         random_seed=random_seed,
     )
     
     val_dataset = MoleculeActivityMapDataset(
         processed_dir=processed_dir,
-        raw_data_dir=raw_data_dir,
         split='val',
         random_seed=random_seed,
     )
     
     test_dataset = MoleculeActivityMapDataset(
         processed_dir=processed_dir,
-        raw_data_dir=raw_data_dir,
         split='test',
         random_seed=random_seed,
     )
