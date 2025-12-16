@@ -119,13 +119,50 @@ python scripts/run_activity_maps.py --coverage-threshold 0.3  # Lenient
 python scripts/train_baseline_nn.py --model mlp --epochs 100
 python scripts/train_baseline_nn.py --model cnn --epochs 100
 
+# 5. K-fold cross-validation (recommended for thesis)
+python scripts/train_baseline_nn_kfold.py --model mlp --n-folds 5 --epochs 100
+
+# 6. Grid search for hyperparameter tuning
+python scripts/grid_search_baseline.py --model mlp \
+    --param lr 0.001 0.005 0.01 \
+    --param dropout 0.3 0.35 0.4 \
+    --use-kfold
+
 # See docs/ACTIVITY_MAPS_PIPELINE.md for full guide
+```
+
+#### Performance Profiling ⏱️ NEW!
+
+```bash
+# Complete profiling (dataloader + device comparison + training breakdown)
+python scripts/profile_performance.py --model mlp --profile-epochs 3 --compare-devices
+
+# Quick dataloader check
+python scripts/profile_performance.py --model mlp --profile-batches 20
+
+# Compare CPU vs MPS performance
+python scripts/profile_performance.py --model mlp --compare-devices
+```
+
+**Key findings:**
+- ✅ 15-60x speedup over legacy implementation
+- ✅ DataLoader is very fast (5-8ms/batch, 120-190 batches/s)
+- ✅ For our small models, CPU is 4.5x faster than MPS for single inference
+- ✅ No bottlenecks identified - training is well optimized
+
+See [`docs/PROFILING_QUICKSTART.md`](docs/PROFILING_QUICKSTART.md) for details.
 ```
 
 ## 📚 Documentation
 
-- **[Activity Maps Pipeline](docs/ACTIVITY_MAPS_PIPELINE.md)** - Complete guide to map preprocessing ✨ NEW
-- **[Quick Start Guide](docs/QUICK_START.md)** - Fast reference for activity maps ✨ NEW
+### Core Documentation
+
+- **[Activity Maps Pipeline](docs/ACTIVITY_MAPS_PIPELINE.md)** - Complete guide to map preprocessing ✨
+- **[Quick Start Guide](docs/QUICK_START.md)** - Fast reference for activity maps ✨
+- **[Performance Improvements](docs/PERFORMANCE_IMPROVEMENTS.md)** - 15-60x speedup details ✨ NEW
+- **[K-Fold CV & Grid Search](docs/KFOLD_AND_GRID_SEARCH.md)** - Hyperparameter optimization guide ✨ NEW
+- **[Profiling Guide](docs/PROFILING_GUIDE.md)** - Complete profiling tutorial (700+ lines) ⏱️ NEW
+- **[Profiling Quick Start](docs/PROFILING_QUICKSTART.md)** - Quick reference for profiling tools ⏱️ NEW
 - **[API Documentation](docs/API_DOCUMENTATION.md)** - Complete API reference for all modules
 - **[Testing Guide](docs/TESTING_GUIDE.md)** - How to run and write tests
 - **[Visualization Guide](docs/VISUALIZATION_GUIDE.md)** - Using visualization tools
