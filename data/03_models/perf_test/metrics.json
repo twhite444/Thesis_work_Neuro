@@ -1,0 +1,1 @@
+{"best_val_loss":0.3071452975,"best_val_correlation":0.4344637115,"best_val_r2":0.2063278258,"best_val_mae":0.3435696214,"best_epoch":3.0,"n_train":200.0,"n_val":43.0,"num_epochs":3.0,"learning_rate":0.005}

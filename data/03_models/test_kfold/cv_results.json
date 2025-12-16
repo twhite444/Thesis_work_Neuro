@@ -1,0 +1,42 @@
+{
+  "mean_metrics": {
+    "best_val_loss": 0.32621327936649325,
+    "best_val_correlation": 0.37498576967793873,
+    "best_val_r2": 0.14560925960540771,
+    "best_val_mae": 0.364654877781868
+  },
+  "std_metrics": {
+    "best_val_loss": 0.004780986905097956,
+    "best_val_correlation": 0.005537889645189947,
+    "best_val_r2": 0.007825958728790272,
+    "best_val_mae": 0.0048013359308242964
+  },
+  "best_fold": 1,
+  "n_splits": 2,
+  "fold_results": [
+    {
+      "best_val_loss": 0.32143229246139526,
+      "best_val_correlation": 0.3694478800327488,
+      "best_val_r2": 0.153435218334198,
+      "best_val_mae": 0.3598535418510437,
+      "best_epoch": 2,
+      "n_train": 143,
+      "n_val": 144,
+      "num_epochs": 2,
+      "learning_rate": 0.005,
+      "fold": 1
+    },
+    {
+      "best_val_loss": 0.3309942662715912,
+      "best_val_correlation": 0.3805236593231287,
+      "best_val_r2": 0.13778330087661744,
+      "best_val_mae": 0.36945621371269227,
+      "best_epoch": 2,
+      "n_train": 144,
+      "n_val": 143,
+      "num_epochs": 2,
+      "learning_rate": 0.005,
+      "fold": 2
+    }
+  ]
+}

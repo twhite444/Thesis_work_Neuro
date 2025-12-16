@@ -31,8 +31,16 @@ def main():
     
     # Training arguments  
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
-    parser.add_argument('--batch-size', type=int, default=16, help='Batch size')
-    parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate')
+    parser.add_argument('--batch-size', type=int, default=32, 
+                        help='Batch size (default: 32, increased for efficiency)')
+    parser.add_argument('--lr', type=float, default=5e-3, 
+                        help='Learning rate (default: 0.005, following reference paper)')
+    parser.add_argument('--weight-decay', type=float, default=0.0,
+                        help='Weight decay (L2 regularization), try 1e-4 or 1e-5')
+    parser.add_argument('--dropout', type=float, default=0.35,
+                        help='Dropout rate (default: 0.35, from reference paper)')
+    parser.add_argument('--early-stopping', type=int, default=0,
+                        help='Early stopping patience (0 = disabled, try 15-20 for long runs)')
     
     # Data arguments
     parser.add_argument('--processed-dir', type=str, default='data/02_processed', 
@@ -55,11 +63,12 @@ def main():
     )
     
     # Create model
-    print(f"Creating {args.model.upper()} model...")
+    print(f"Creating {args.model.upper()} model (dropout={args.dropout})...")
     model = get_model(
         model_type=args.model,
         input_dim=train_loader.dataset.feature_dim,
         output_shape=(79, 43),
+        dropout=args.dropout,
     )
     
     # Set device
@@ -75,6 +84,8 @@ def main():
         output_dir=args.output_dir,
         num_epochs=args.epochs,
         learning_rate=args.lr,
+        weight_decay=args.weight_decay,
+        early_stopping_patience=args.early_stopping,
         device=device,
         verbose=not args.quiet,
     )

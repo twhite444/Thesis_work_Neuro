@@ -176,7 +176,7 @@ class MoleculeActivityMapDataset(Dataset):
 def get_dataloaders(
     processed_dir: str = "data/02_processed",
     batch_size: int = 32,
-    num_workers: int = 4,
+    num_workers: int = 0,
     random_seed: int = 42,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Create train, validation, and test dataloaders using pre-processed data.
@@ -184,16 +184,23 @@ def get_dataloaders(
     Args:
         processed_dir: Directory containing processed features and maps
         batch_size: Batch size for dataloaders
-        num_workers: Number of worker processes for data loading
+        num_workers: Number of worker processes for data loading (0 recommended for macOS/MPS)
         random_seed: Random seed for reproducible splits
         
     Returns:
         Tuple of (train_loader, val_loader, test_loader)
         
+    Note:
+        For optimal performance on macOS with MPS backend:
+        - Use num_workers=0 to avoid multiprocessing overhead
+        - Use pin_memory=False to avoid MPS compatibility warnings
+        - Batch size 32 provides good balance of speed and memory
+        
     Example:
         >>> train_loader, val_loader, test_loader = get_dataloaders(
         ...     processed_dir="data/02_processed",
-        ...     batch_size=32
+        ...     batch_size=32,
+        ...     num_workers=0
         ... )
     """
     from torch.utils.data import DataLoader
@@ -223,7 +230,7 @@ def get_dataloaders(
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=False,  # Avoid MPS compatibility warnings
     )
     
     val_loader = DataLoader(
@@ -231,7 +238,7 @@ def get_dataloaders(
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=False,
     )
     
     test_loader = DataLoader(
@@ -239,7 +246,7 @@ def get_dataloaders(
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=False,
     )
     
     return train_loader, val_loader, test_loader

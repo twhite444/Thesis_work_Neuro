@@ -16,22 +16,28 @@ class MoleculeToActivityMapMLP(nn.Module):
     
     Architecture:
         Input: Molecular descriptors (e.g., ECFP fingerprints)
-        Hidden layers: Fully connected with ReLU activation
+        Hidden layers: 512 → 256 → 128 (matching reference architecture)
+        Dropout: 0.35 (following reference paper)
         Output: Flattened activity map (reshaped to spatial dimensions)
+    
+    Reference architecture from paper:
+        - 3 hidden layers: 512, 256, 128 neurons
+        - ReLU activation
+        - Dropout 0.35 for regularization
     
     Args:
         input_dim: Dimension of input molecular descriptors
-        hidden_dims: List of hidden layer dimensions
+        hidden_dims: List of hidden layer dimensions (default: [512, 256, 128])
         output_shape: Tuple of (height, width) for activity map
-        dropout: Dropout probability (default: 0.2)
+        dropout: Dropout probability (default: 0.35, from reference paper)
     """
     
     def __init__(
         self,
         input_dim: int,
-        hidden_dims: list[int] = [512, 1024, 512],
+        hidden_dims: list[int] = [512, 256, 128],
         output_shape: Tuple[int, int] = (79, 43),
-        dropout: float = 0.2,
+        dropout: float = 0.35,
     ):
         super().__init__()
         
@@ -83,14 +89,15 @@ class MoleculeToActivityMapCNN(nn.Module):
     
     Architecture:
         Input: Molecular descriptors
-        Encoder: Dense layers to create latent representation
+        Encoder: Dense layers (512 → 256 → 128) matching reference
         Decoder: Transposed convolutions to upsample to (79, 43)
+        Dropout: 0.35 for regularization
     
     Args:
         input_dim: Dimension of input molecular descriptors
         latent_dim: Dimension of latent representation
         output_shape: Tuple of (height, width) for activity map
-        dropout: Dropout probability (default: 0.2)
+        dropout: Dropout probability (default: 0.35, from reference)
     """
     
     def __init__(
@@ -98,7 +105,7 @@ class MoleculeToActivityMapCNN(nn.Module):
         input_dim: int,
         latent_dim: int = 512,
         output_shape: Tuple[int, int] = (79, 43),
-        dropout: float = 0.2,
+        dropout: float = 0.35,
     ):
         super().__init__()
         
@@ -107,24 +114,28 @@ class MoleculeToActivityMapCNN(nn.Module):
         self.output_shape = output_shape
         
         # Encoder: Compress molecular descriptors to latent representation
+        # Following reference architecture: 512 → 256 → 128
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 1024),
+            nn.Linear(input_dim, 512),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(1024, latent_dim),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(256, 128),
             nn.ReLU(),
             nn.Dropout(dropout),
         )
         
         # Initial spatial dimensions after reshaping latent vector
-        # We'll reshape latent_dim to (64, 4, 4) then upsample
+        # We'll reshape 128 to (64, 4, 4) then upsample
         self.initial_channels = 64
         self.initial_h = 5
         self.initial_w = 3
         
         # Project latent to initial spatial representation
         self.to_spatial = nn.Sequential(
-            nn.Linear(latent_dim, self.initial_channels * self.initial_h * self.initial_w),
+            nn.Linear(128, self.initial_channels * self.initial_h * self.initial_w),
             nn.ReLU(),
         )
         
