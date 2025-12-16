@@ -7,6 +7,7 @@ from .training_viz import (
     plot_prediction_scatter,
     plot_activity_map_comparison,
     create_training_report,
+    plot_feature_importance,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     'plot_prediction_scatter',
     'plot_activity_map_comparison',
     'create_training_report',
+    'plot_feature_importance',
 ]

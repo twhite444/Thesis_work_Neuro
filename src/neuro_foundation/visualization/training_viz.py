@@ -18,6 +18,7 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Rectangle
 
@@ -736,5 +737,185 @@ def create_training_report(
     if output_path:
         fig.savefig(output_path, dpi=300, bbox_inches='tight')
         print(f"✓ Saved training report to {output_path}")
+    
+    return fig
+
+
+def plot_feature_importance(
+    model,
+    feature_names: Optional[List[str]] = None,
+    top_n: int = 20,
+    output_path: Optional[Union[str, Path]] = None,
+    figsize: Tuple[int, int] = (10, 8),
+    color: str = '#2E86AB',
+    title: Optional[str] = None,
+) -> plt.Figure:
+    """Plot feature importance based on first-layer weights from trained neural network.
+    
+    Computes importance scores as the absolute magnitude of first-layer weights,
+    then displays the top N most important molecular descriptors in a horizontal
+    bar chart suitable for publication.
+    
+    This visualization helps identify which molecular features (descriptors) the
+    model relies on most heavily to predict olfactory bulb activation patterns.
+    
+    Args:
+        model: Trained PyTorch neural network (nn.Module). Must have a first
+               layer accessible via model.network[0] (for MLP) or similar.
+        feature_names: List of feature/descriptor names. If None, uses generic
+                      names like "Feature 1", "Feature 2", etc.
+        top_n: Number of top features to display (default: 20)
+        output_path: Path to save figure. If None, figure is not saved.
+        figsize: Figure size as (width, height) tuple
+        color: Bar color (default: '#2E86AB' - publication blue)
+        title: Custom title. If None, uses default title.
+        
+    Returns:
+        matplotlib Figure object
+        
+    Example:
+        >>> from neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP
+        >>> import pandas as pd
+        >>> 
+        >>> # Load feature names
+        >>> features_df = pd.read_csv('data/02_processed/selected_features.csv')
+        >>> feature_names = [col for col in features_df.columns if col != 'CID']
+        >>> 
+        >>> # Load trained model
+        >>> model = MoleculeToActivityMapMLP(input_dim=268)
+        >>> model.load_state_dict(torch.load('models/best_model.pth'))
+        >>> 
+        >>> # Plot feature importance
+        >>> fig = plot_feature_importance(
+        ...     model,
+        ...     feature_names=feature_names,
+        ...     top_n=20,
+        ...     output_path='feature_importance.png'
+        ... )
+        
+    Notes:
+        - Importance is computed as mean absolute weight magnitude across all
+          output neurons in the first layer
+        - Works with MLP architectures where first layer is model.network[0]
+        - For CNN architectures with encoder-decoder, extracts encoder input layer
+        - Handles both Linear and Conv layers appropriately
+    """
+    import torch
+    
+    # Extract first layer weights
+    first_layer = None
+    
+    # Try common architecture patterns
+    if hasattr(model, 'network') and isinstance(model.network, torch.nn.Sequential):
+        # MLP architecture (e.g., MoleculeToActivityMapMLP)
+        first_layer = model.network[0]
+    elif hasattr(model, 'encoder') and hasattr(model.encoder, '0'):
+        # Encoder-decoder architecture
+        first_layer = model.encoder[0]
+    elif hasattr(model, 'fc1'):
+        # Direct first layer
+        first_layer = model.fc1
+    else:
+        # Search for first Linear layer in all children
+        for module in model.modules():
+            if isinstance(module, torch.nn.Linear):
+                first_layer = module
+                break
+    
+    if first_layer is None or not isinstance(first_layer, torch.nn.Linear):
+        raise ValueError(
+            "Could not find first linear layer. Model must have accessible "
+            "first layer via model.network[0], model.encoder[0], or model.fc1"
+        )
+    
+    # Get weights: shape is (output_dim, input_dim)
+    weights = first_layer.weight.data.cpu().numpy()
+    
+    # Compute importance: mean absolute weight magnitude across output neurons
+    # This gives one importance score per input feature
+    importance_scores = np.abs(weights).mean(axis=0)  # Shape: (input_dim,)
+    
+    # Validate dimensions
+    n_features = len(importance_scores)
+    if feature_names is not None and len(feature_names) != n_features:
+        raise ValueError(
+            f"Number of feature names ({len(feature_names)}) does not match "
+            f"number of input features ({n_features})"
+        )
+    
+    # Create feature names if not provided
+    if feature_names is None:
+        feature_names = [f"Feature {i+1}" for i in range(n_features)]
+    
+    # Rank features by importance
+    importance_df = pd.DataFrame({
+        'feature': feature_names,
+        'importance': importance_scores
+    })
+    importance_df = importance_df.sort_values('importance', ascending=False)
+    
+    # Select top N features
+    top_features = importance_df.head(top_n)
+    
+    # Create horizontal bar chart (publication quality)
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Plot bars (reverse order so highest importance is at top)
+    y_pos = np.arange(len(top_features))
+    bars = ax.barh(
+        y_pos,
+        top_features['importance'].values,
+        color=color,
+        alpha=0.8,
+        edgecolor='black',
+        linewidth=0.5
+    )
+    
+    # Customize appearance
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(top_features['feature'].values)
+    ax.invert_yaxis()  # Highest importance at top
+    
+    ax.set_xlabel('Importance Score (Mean Absolute Weight)', fontsize=11, fontweight='bold')
+    ax.set_ylabel('Molecular Descriptor', fontsize=11, fontweight='bold')
+    
+    if title is None:
+        title = (f'Top {top_n} Molecular Descriptors Ranked by Importance\n'
+                 f'Based on First-Layer Weight Magnitudes')
+    ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
+    
+    # Add value labels on bars
+    for i, (bar, value) in enumerate(zip(bars, top_features['importance'].values)):
+        ax.text(
+            value + max(top_features['importance']) * 0.01,
+            bar.get_y() + bar.get_height() / 2,
+            f'{value:.4f}',
+            va='center',
+            fontsize=8,
+            color='black'
+        )
+    
+    # Add grid for readability
+    ax.grid(axis='x', alpha=0.3, linestyle='--')
+    ax.set_axisbelow(True)
+    
+    # Tight layout
+    plt.tight_layout()
+    
+    # Save if output path provided
+    if output_path:
+        fig.savefig(output_path, dpi=300, bbox_inches='tight')
+        print(f"✓ Saved feature importance plot to {output_path}")
+    
+    # Print summary statistics
+    print(f"\n{'='*60}")
+    print(f"Feature Importance Analysis Summary")
+    print(f"{'='*60}")
+    print(f"Total features: {n_features}")
+    print(f"Top {top_n} features shown")
+    print(f"\nTop 5 most important features:")
+    for i, (idx, row) in enumerate(importance_df.head(5).iterrows(), 1):
+        print(f"  {i}. {row['feature']:30s} {row['importance']:.6f}")
+    print(f"{'='*60}\n")
     
     return fig

@@ -135,6 +135,7 @@ python scripts/grid_search_baseline.py --model mlp \
 - Training curves (loss, correlation, R²)
 - K-fold CV analysis with mean ± std across folds
 - Grid search heatmaps and rankings
+- **Feature importance** rankings based on first-layer weights 🆕
 - See [`docs/VISUALIZATION_NN_GUIDE.md`](docs/VISUALIZATION_NN_GUIDE.md) for complete guide
 
 #### Performance Profiling ⏱️
