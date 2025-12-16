@@ -322,7 +322,7 @@ def load_activity_maps_by_cid(cid: int, data_dir: str = "data/01_raw") -> List[n
     # Find indices where CID matches
     indices = np.where(cids == cid)[0]
     
-    if len(indices) == 0:
+    if not indices.size:  # NumPy array - use .size for clarity
         return []
     
     # Return list of maps for this CID
@@ -346,7 +346,7 @@ def load_activity_map_by_cid_averaged(cid: int, data_dir: str = "data/01_raw") -
     """
     maps_for_cid = load_activity_maps_by_cid(cid, data_dir)
     
-    if len(maps_for_cid) == 0:
+    if not maps_for_cid:  # Python list - Pythonic empty check
         return None
     
     # Average across all maps using nanmean to handle any NaN values

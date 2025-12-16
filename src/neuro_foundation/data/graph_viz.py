@@ -486,7 +486,7 @@ def visualize_molecular_graph(
     
     if molecules_df is not None:
         mol_row = molecules_df[molecules_df['CID'] == cid]
-        if len(mol_row) > 0:
+        if not mol_row.empty:  # pandas DataFrame - use .empty property
             row = mol_row.iloc[0]
             smiles = row.get('IsomericSMILES', row.get('SMILES', None))
             mol_name = row.get('name', row.get('Name', None))
@@ -765,7 +765,7 @@ def visualize_multiple_graphs(
         smiles = None
         if molecules_df is not None:
             mol_row = molecules_df[molecules_df['CID'] == cid]
-            if len(mol_row) > 0:
+            if not mol_row.empty:  # pandas DataFrame - use .empty property
                 smiles = mol_row.iloc[0].get('IsomericSMILES', mol_row.iloc[0].get('SMILES', None))
         
         # Get graph stats
@@ -842,7 +842,7 @@ def compare_molecule_and_graph(
     smiles = None
     if molecules_df is not None:
         mol_row = molecules_df[molecules_df['CID'] == cid]
-        if len(mol_row) > 0:
+        if not mol_row.empty:  # pandas DataFrame - use .empty property
             smiles = mol_row.iloc[0].get('IsomericSMILES', mol_row.iloc[0].get('SMILES', None))
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)

@@ -224,7 +224,7 @@ def smiles_to_graph(smiles: str, include_edge_features: bool = True) -> Optional
                 edge_attr.append(bond_features)
                 edge_attr.append(bond_features)  # Same features for both directions
         
-        if len(edge_index) == 0:
+        if edge_index.size == 0:  # NumPy: explicit .size check for clarity
             # Molecule has no bonds (single atom)
             edge_index = np.empty((2, 0), dtype=np.int64)
             edge_attr = np.empty((0, 10), dtype=np.float32)
@@ -691,7 +691,7 @@ def visualize_molecule_interactive(
     
     # Find the molecule
     mol_idx = np.where(molecules['CID'] == cid)[0]
-    if len(mol_idx) == 0:
+    if not mol_idx.size:  # NumPy array
         print(f"❌ No molecule found for CID {cid}")
         return None
     

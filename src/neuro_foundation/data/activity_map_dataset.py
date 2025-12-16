@@ -89,7 +89,7 @@ class MoleculeActivityMapDataset(Dataset):
         # Align features with maps using CID
         common_cids = np.intersect1d(self.features.index, self.map_cids)
         
-        if len(common_cids) == 0:
+        if not common_cids.size:  # NumPy array - use .size
             raise ValueError(
                 "No common CIDs found between features and maps. "
                 "Regenerate both processed_maps.npz and selected_features.csv"

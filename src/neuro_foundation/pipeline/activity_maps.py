@@ -145,8 +145,8 @@ def _compute_map_quality_metrics(map_data: np.ndarray) -> Dict[str, float]:
     value_range = max_val - min_val
     
     active_vals = map_data[active_mask]
-    mean_active = active_vals.mean() if len(active_vals) > 0 else 0.0
-    std_active = active_vals.std() if len(active_vals) > 0 else 0.0
+    mean_active = active_vals.mean() if active_vals.size > 0 else 0.0  # NumPy: use .size
+    std_active = active_vals.std() if active_vals.size > 0 else 0.0
     
     return {
         'coverage_frac': coverage_frac,
