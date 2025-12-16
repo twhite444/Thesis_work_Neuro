@@ -20,7 +20,22 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import torch
 from matplotlib.patches import Rectangle
+from scipy.stats import pearsonr
+
+# Import utility functions for metrics and array operations
+from neuro_foundation.utils.metrics import (
+    compute_correlation,
+    compute_mse,
+    compute_mae,
+    compute_statistics,
+    flatten_arrays,
+    sample_for_plotting,
+    to_numpy,
+    DEFAULT_MAX_SCATTER_POINTS,
+    DEFAULT_MAX_REPORT_POINTS,
+)
 
 
 # Set publication-quality defaults
@@ -440,66 +455,66 @@ def plot_prediction_scatter(
         >>> predictions = model(test_data)
         >>> fig = plot_prediction_scatter(predictions, targets, 'predictions.png')
     """
-    fig, ax = plt.subplots(figsize=figsize)
-    
-    # Flatten arrays
-    pred_flat = predictions.flatten()
-    target_flat = targets.flatten()
-    
-    # Sample if too many points
-    if len(pred_flat) > 10000:
-        indices = np.random.choice(len(pred_flat), 10000, replace=False)
-        pred_flat = pred_flat[indices]
-        target_flat = target_flat[indices]
-    
-    # Compute statistics
-    from scipy.stats import pearsonr
-    corr, _ = pearsonr(pred_flat, target_flat)
-    mse = np.mean((pred_flat - target_flat) ** 2)
-    mae = np.mean(np.abs(pred_flat - target_flat))
-    
-    # Create scatter plot with density coloring
-    h = ax.hist2d(target_flat, pred_flat, bins=50, cmap='viridis', 
-                  cmin=1)  # Don't show bins with 0 counts
-    
-    # Add perfect prediction line
-    min_val = min(target_flat.min(), pred_flat.min())
-    max_val = max(target_flat.max(), pred_flat.max())
-    ax.plot([min_val, max_val], [min_val, max_val], 'r--', 
-            linewidth=2, label='Perfect prediction', alpha=0.7)
-    
-    # Add statistics box
-    stats_text = (
-        f'Correlation: {corr:.4f}\n'
-        f'MSE: {mse:.4f}\n'
-        f'MAE: {mae:.4f}\n'
-        f'N points: {len(pred_flat):,}'
-    )
-    
-    ax.text(0.05, 0.95, stats_text, transform=ax.transAxes,
-            fontsize=10, verticalalignment='top',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-    
-    ax.set_xlabel('Ground Truth')
-    ax.set_ylabel('Predictions')
-    ax.set_title(title)
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    
-    # Make square aspect ratio
-    ax.set_aspect('equal', adjustable='box')
-    
-    # Add colorbar
-    cbar = plt.colorbar(h[3], ax=ax)
-    cbar.set_label('Count')
-    
-    plt.tight_layout()
-    
-    if output_path:
-        fig.savefig(output_path, dpi=300, bbox_inches='tight')
-        print(f"✓ Saved prediction scatter to {output_path}")
-    
-    return fig
+    try:
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Sample for plotting if needed (handles flattening and type conversion)
+        pred_flat, target_flat = sample_for_plotting(
+            predictions, targets, max_points=DEFAULT_MAX_SCATTER_POINTS
+        )
+        
+        # Compute statistics using utility functions
+        stats = compute_statistics(predictions, targets)
+        corr = stats['correlation']
+        mse = stats['mse']
+        mae = stats['mae']
+        
+        # Create scatter plot with density coloring
+        h = ax.hist2d(target_flat, pred_flat, bins=50, cmap='viridis', 
+                      cmin=1)  # Don't show bins with 0 counts
+        
+        # Add perfect prediction line
+        min_val = min(target_flat.min(), pred_flat.min())
+        max_val = max(target_flat.max(), pred_flat.max())
+        ax.plot([min_val, max_val], [min_val, max_val], 'r--', 
+                linewidth=2, label='Perfect prediction', alpha=0.7)
+        
+        # Add statistics box
+        stats_text = (
+            f'Correlation: {corr:.4f}\n'
+            f'MSE: {mse:.4f}\n'
+            f'MAE: {mae:.4f}\n'
+            f'N points: {len(pred_flat):,}'
+        )
+        
+        ax.text(0.05, 0.95, stats_text, transform=ax.transAxes,
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        ax.set_xlabel('Ground Truth')
+        ax.set_ylabel('Predictions')
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # Make square aspect ratio
+        ax.set_aspect('equal', adjustable='box')
+        
+        # Add colorbar
+        cbar = plt.colorbar(h[3], ax=ax)
+        cbar.set_label('Count')
+        
+        plt.tight_layout()
+        
+        if output_path:
+            fig.savefig(output_path, dpi=300, bbox_inches='tight')
+            print(f"✓ Saved prediction scatter to {output_path}")
+        
+        return fig
+        
+    except Exception as e:
+        print(f"✗ Error creating prediction scatter plot: {e}")
+        raise
 
 
 def plot_activity_map_comparison(
@@ -525,58 +540,62 @@ def plot_activity_map_comparison(
         >>> predictions = model(test_features)
         >>> fig = plot_activity_map_comparison(predictions, targets, n_samples=6)
     """
-    n_samples = min(n_samples, len(predictions))
-    
-    fig, axes = plt.subplots(n_samples, 3, figsize=figsize)
-    if n_samples == 1:
-        axes = axes.reshape(1, -1)
-    
-    # Randomly select samples
-    indices = np.random.choice(len(predictions), n_samples, replace=False)
-    
-    for i, idx in enumerate(indices):
-        pred = predictions[idx]
-        target = targets[idx]
-        diff = pred - target
+    try:
+        n_samples = min(n_samples, len(predictions))
         
-        # Ground truth
-        im0 = axes[i, 0].imshow(target, cmap='viridis', aspect='auto')
-        axes[i, 0].set_title(f'Sample {idx}: Ground Truth')
-        axes[i, 0].axis('off')
-        plt.colorbar(im0, ax=axes[i, 0], fraction=0.046)
+        fig, axes = plt.subplots(n_samples, 3, figsize=figsize)
+        if n_samples == 1:
+            axes = axes.reshape(1, -1)
         
-        # Prediction
-        im1 = axes[i, 1].imshow(pred, cmap='viridis', aspect='auto',
-                               vmin=target.min(), vmax=target.max())  # Same scale
-        axes[i, 1].set_title('Prediction')
-        axes[i, 1].axis('off')
-        plt.colorbar(im1, ax=axes[i, 1], fraction=0.046)
+        # Randomly select samples
+        indices = np.random.choice(len(predictions), n_samples, replace=False)
         
-        # Difference
-        max_abs_diff = np.abs(diff).max()
-        im2 = axes[i, 2].imshow(diff, cmap='RdBu_r', aspect='auto',
-                               vmin=-max_abs_diff, vmax=max_abs_diff)
-        axes[i, 2].set_title('Difference (Pred - True)')
-        axes[i, 2].axis('off')
-        plt.colorbar(im2, ax=axes[i, 2], fraction=0.046)
+        for i, idx in enumerate(indices):
+            pred = to_numpy(predictions[idx])
+            target = to_numpy(targets[idx])
+            diff = pred - target
+            
+            # Ground truth
+            im0 = axes[i, 0].imshow(target, cmap='viridis', aspect='auto')
+            axes[i, 0].set_title(f'Sample {idx}: Ground Truth')
+            axes[i, 0].axis('off')
+            plt.colorbar(im0, ax=axes[i, 0], fraction=0.046)
+            
+            # Prediction
+            im1 = axes[i, 1].imshow(pred, cmap='viridis', aspect='auto',
+                                   vmin=target.min(), vmax=target.max())  # Same scale
+            axes[i, 1].set_title('Prediction')
+            axes[i, 1].axis('off')
+            plt.colorbar(im1, ax=axes[i, 1], fraction=0.046)
+            
+            # Difference
+            max_abs_diff = np.abs(diff).max()
+            im2 = axes[i, 2].imshow(diff, cmap='RdBu_r', aspect='auto',
+                                   vmin=-max_abs_diff, vmax=max_abs_diff)
+            axes[i, 2].set_title('Difference (Pred - True)')
+            axes[i, 2].axis('off')
+            plt.colorbar(im2, ax=axes[i, 2], fraction=0.046)
+            
+            # Compute correlation for this sample using utility
+            corr = compute_correlation(pred, target, flatten=True)
+            mse = compute_mse(pred, target, flatten=True)
+            
+            # Add statistics
+            axes[i, 0].text(0.5, -0.1, f'Corr: {corr:.3f}, MSE: {mse:.4f}',
+                           transform=axes[i, 0].transAxes,
+                           ha='center', fontsize=9)
         
-        # Compute correlation for this sample
-        from scipy.stats import pearsonr
-        corr, _ = pearsonr(pred.flatten(), target.flatten())
-        mse = np.mean((pred - target) ** 2)
+        plt.tight_layout()
         
-        # Add statistics
-        axes[i, 0].text(0.5, -0.1, f'Corr: {corr:.3f}, MSE: {mse:.4f}',
-                       transform=axes[i, 0].transAxes,
-                       ha='center', fontsize=9)
-    
-    plt.tight_layout()
-    
-    if output_path:
-        fig.savefig(output_path, dpi=300, bbox_inches='tight')
-        print(f"✓ Saved activity map comparison to {output_path}")
-    
-    return fig
+        if output_path:
+            fig.savefig(output_path, dpi=300, bbox_inches='tight')
+            print(f"✓ Saved activity map comparison to {output_path}")
+        
+        return fig
+        
+    except Exception as e:
+        print(f"✗ Error creating activity map comparison: {e}")
+        raise
 
 
 def create_training_report(
@@ -679,58 +698,61 @@ def create_training_report(
     
     # 5-6. Prediction scatter (if provided)
     if predictions is not None and targets is not None:
-        from scipy.stats import pearsonr
-        
-        pred_flat = predictions.flatten()
-        target_flat = targets.flatten()
-        
-        # Sample if too many points
-        if len(pred_flat) > 5000:
-            indices = np.random.choice(len(pred_flat), 5000, replace=False)
-            pred_flat = pred_flat[indices]
-            target_flat = target_flat[indices]
-        
-        ax5 = fig.add_subplot(gs[1, 1])
-        h = ax5.hist2d(target_flat, pred_flat, bins=40, cmap='viridis', cmin=1)
-        
-        min_val = min(target_flat.min(), pred_flat.min())
-        max_val = max(target_flat.max(), pred_flat.max())
-        ax5.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, alpha=0.7)
-        
-        corr, _ = pearsonr(pred_flat, target_flat)
-        ax5.set_title(f'Predictions vs Truth (r={corr:.3f})')
-        ax5.set_xlabel('Ground Truth')
-        ax5.set_ylabel('Predictions')
-        ax5.set_aspect('equal', adjustable='box')
-        plt.colorbar(h[3], ax=ax5, label='Count')
-        
-        # Residual plot
-        ax6 = fig.add_subplot(gs[1, 2])
-        residuals = pred_flat - target_flat
-        ax6.scatter(target_flat, residuals, alpha=0.3, s=10)
-        ax6.axhline(0, color='red', linestyle='--', linewidth=2)
-        ax6.set_xlabel('Ground Truth')
-        ax6.set_ylabel('Residuals')
-        ax6.set_title('Residual Plot')
-        ax6.grid(True, alpha=0.3)
-        
-        # Sample activity maps (if 2D)
-        if len(predictions.shape) == 3:  # (N, H, W)
-            n_samples = min(3, len(predictions))
-            indices = np.random.choice(len(predictions), n_samples, replace=False)
+        try:
+            # Sample for plotting using utility
+            pred_flat, target_flat = sample_for_plotting(
+                predictions, targets, max_points=DEFAULT_MAX_REPORT_POINTS
+            )
             
-            for i, idx in enumerate(indices):
-                # Ground truth
-                ax = fig.add_subplot(gs[2, i])
+            ax5 = fig.add_subplot(gs[1, 1])
+            h = ax5.hist2d(target_flat, pred_flat, bins=40, cmap='viridis', cmin=1)
+            
+            min_val = min(target_flat.min(), pred_flat.min())
+            max_val = max(target_flat.max(), pred_flat.max())
+            ax5.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, alpha=0.7)
+            
+            # Compute correlation using utility
+            corr = compute_correlation(predictions, targets)
+            ax5.set_title(f'Predictions vs Truth (r={corr:.3f})')
+            ax5.set_xlabel('Ground Truth')
+            ax5.set_ylabel('Predictions')
+            ax5.set_aspect('equal', adjustable='box')
+            plt.colorbar(h[3], ax=ax5, label='Count')
+            
+            # Residual plot
+            ax6 = fig.add_subplot(gs[1, 2])
+            residuals = pred_flat - target_flat
+            ax6.scatter(target_flat, residuals, alpha=0.3, s=10)
+            ax6.axhline(0, color='red', linestyle='--', linewidth=2)
+            ax6.set_xlabel('Ground Truth')
+            ax6.set_ylabel('Residuals')
+            ax6.set_title('Residual Plot')
+            ax6.grid(True, alpha=0.3)
+            
+            # Sample activity maps (if 2D)
+            if len(predictions.shape) == 3:  # (N, H, W)
+                n_samples = min(3, len(predictions))
+                indices = np.random.choice(len(predictions), n_samples, replace=False)
                 
-                # Create composite view: top half = truth, bottom half = prediction
-                composite = np.vstack([targets[idx], predictions[idx]])
-                
-                im = ax.imshow(composite, cmap='viridis', aspect='auto')
-                ax.axhline(targets.shape[1] - 0.5, color='white', linestyle='--', linewidth=2)
-                ax.set_title(f'Sample {idx}\n(Top: Truth, Bottom: Pred)')
-                ax.axis('off')
-                plt.colorbar(im, ax=ax, fraction=0.046)
+                for i, idx in enumerate(indices):
+                    # Ground truth
+                    ax = fig.add_subplot(gs[2, i])
+                    
+                    # Convert to numpy for visualization
+                    pred_sample = to_numpy(predictions[idx])
+                    target_sample = to_numpy(targets[idx])
+                    
+                    # Create composite view: top half = truth, bottom half = prediction
+                    composite = np.vstack([target_sample, pred_sample])
+                    
+                    im = ax.imshow(composite, cmap='viridis', aspect='auto')
+                    ax.axhline(target_sample.shape[0] - 0.5, color='white', linestyle='--', linewidth=2)
+                    ax.set_title(f'Sample {idx}\n(Top: Truth, Bottom: Pred)')
+                    ax.axis('off')
+                    plt.colorbar(im, ax=ax, fraction=0.046)
+                    
+        except Exception as e:
+            print(f"✗ Warning: Could not create prediction visualizations: {e}")
     
     plt.suptitle('Neural Network Training Report', fontsize=14, fontweight='bold', y=0.995)
     
@@ -773,6 +795,11 @@ def plot_feature_importance(
     Returns:
         matplotlib Figure object
         
+    Raises:
+        TypeError: If model is not a torch.nn.Module or inputs have wrong type
+        ValueError: If model has no linear layer, weights invalid, or feature_names wrong length
+        RuntimeError: If weights contain NaN/Inf values
+        
     Example:
         >>> from neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP
         >>> import pandas as pd
@@ -800,122 +827,197 @@ def plot_feature_importance(
         - For CNN architectures with encoder-decoder, extracts encoder input layer
         - Handles both Linear and Conv layers appropriately
     """
-    import torch
-    
-    # Extract first layer weights
-    first_layer = None
-    
-    # Try common architecture patterns
-    if hasattr(model, 'network') and isinstance(model.network, torch.nn.Sequential):
-        # MLP architecture (e.g., MoleculeToActivityMapMLP)
-        first_layer = model.network[0]
-    elif hasattr(model, 'encoder') and hasattr(model.encoder, '0'):
-        # Encoder-decoder architecture
-        first_layer = model.encoder[0]
-    elif hasattr(model, 'fc1'):
-        # Direct first layer
-        first_layer = model.fc1
-    else:
-        # Search for first Linear layer in all children
-        for module in model.modules():
-            if isinstance(module, torch.nn.Linear):
-                first_layer = module
-                break
-    
-    if first_layer is None or not isinstance(first_layer, torch.nn.Linear):
-        raise ValueError(
-            "Could not find first linear layer. Model must have accessible "
-            "first layer via model.network[0], model.encoder[0], or model.fc1"
+    try:
+        # ==================== INPUT VALIDATION ====================
+        
+        # Validate model type
+        if not isinstance(model, torch.nn.Module):
+            raise TypeError(
+                f"Model must be a torch.nn.Module, got {type(model).__name__}"
+            )
+        
+        # Validate top_n
+        if not isinstance(top_n, int) or top_n <= 0:
+            raise ValueError(f"top_n must be a positive integer, got {top_n}")
+        
+        # Validate feature_names type if provided
+        if feature_names is not None:
+            if not isinstance(feature_names, (list, tuple, np.ndarray)):
+                raise TypeError(
+                    f"feature_names must be a list, tuple, or array, got {type(feature_names).__name__}"
+                )
+        
+        # ==================== EXTRACT FIRST LAYER ====================
+        
+        first_layer = None
+        
+        # Try common architecture patterns
+        if hasattr(model, 'network') and isinstance(model.network, torch.nn.Sequential):
+            # MLP architecture (e.g., MoleculeToActivityMapMLP)
+            first_layer = model.network[0]
+        elif hasattr(model, 'encoder') and hasattr(model.encoder, '0'):
+            # Encoder-decoder architecture
+            first_layer = model.encoder[0]
+        elif hasattr(model, 'fc1'):
+            # Direct first layer
+            first_layer = model.fc1
+        else:
+            # Search for first Linear layer in all children
+            for module in model.modules():
+                if isinstance(module, torch.nn.Linear):
+                    first_layer = module
+                    break
+        
+        if first_layer is None:
+            raise ValueError(
+                "Could not find any Linear layer in model. Model must have accessible "
+                "first layer via model.network[0], model.encoder[0], model.fc1, or as a submodule."
+            )
+        
+        if not isinstance(first_layer, torch.nn.Linear):
+            raise ValueError(
+                f"First layer must be a Linear layer, got {type(first_layer).__name__}. "
+                f"This function currently only supports fully-connected (Linear) first layers."
+            )
+        
+        # ==================== EXTRACT AND VALIDATE WEIGHTS ====================
+        
+        # Get weights: shape is (output_dim, input_dim)
+        weights = first_layer.weight.data.cpu().numpy()
+        
+        # Validate weight shape
+        if weights.ndim != 2:
+            raise ValueError(
+                f"Expected 2D weight matrix, got shape {weights.shape} ({weights.ndim}D). "
+                f"First layer weights should have shape (output_dim, input_dim)."
+            )
+        
+        if weights.shape[0] == 0 or weights.shape[1] == 0:
+            raise ValueError(
+                f"Invalid weight dimensions: {weights.shape}. Both dimensions must be > 0."
+            )
+        
+        # Check for NaN/Inf values
+        if not np.isfinite(weights).all():
+            n_nan = np.isnan(weights).sum()
+            n_inf = np.isinf(weights).sum()
+            raise RuntimeError(
+                f"Model weights contain invalid values: {n_nan} NaN, {n_inf} Inf. "
+                f"This usually indicates the model wasn't trained properly or diverged during training."
+            )
+        
+        # ==================== COMPUTE IMPORTANCE SCORES ====================
+        
+        # Compute importance: mean absolute weight magnitude across output neurons
+        # This gives one importance score per input feature
+        importance_scores = np.abs(weights).mean(axis=0)  # Shape: (input_dim,)
+        
+        # Validate dimensions
+        n_features = len(importance_scores)
+        
+        if feature_names is not None and len(feature_names) != n_features:
+            raise ValueError(
+                f"Number of feature names ({len(feature_names)}) does not match "
+                f"number of input features ({n_features}). Ensure feature_names "
+                f"has exactly {n_features} elements."
+            )
+        
+        # Create feature names if not provided
+        if feature_names is None:
+            feature_names = [f"Feature {i+1}" for i in range(n_features)]
+        
+        # Validate top_n doesn't exceed available features
+        if top_n > n_features:
+            print(f"⚠️  Warning: top_n ({top_n}) exceeds number of features ({n_features}). "
+                  f"Showing all {n_features} features.")
+            top_n = n_features
+        
+        # ==================== RANK AND SELECT TOP FEATURES ====================
+        
+        # Rank features by importance
+        importance_df = pd.DataFrame({
+            'feature': feature_names,
+            'importance': importance_scores
+        })
+        importance_df = importance_df.sort_values('importance', ascending=False)
+        
+        # Select top N features
+        top_features = importance_df.head(top_n)
+        
+        # ==================== CREATE VISUALIZATION ====================
+        
+        # Create horizontal bar chart (publication quality)
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Plot bars (reverse order so highest importance is at top)
+        y_pos = np.arange(len(top_features))
+        bars = ax.barh(
+            y_pos,
+            top_features['importance'].values,
+            color=color,
+            alpha=0.8,
+            edgecolor='black',
+            linewidth=0.5
         )
-    
-    # Get weights: shape is (output_dim, input_dim)
-    weights = first_layer.weight.data.cpu().numpy()
-    
-    # Compute importance: mean absolute weight magnitude across output neurons
-    # This gives one importance score per input feature
-    importance_scores = np.abs(weights).mean(axis=0)  # Shape: (input_dim,)
-    
-    # Validate dimensions
-    n_features = len(importance_scores)
-    if feature_names is not None and len(feature_names) != n_features:
-        raise ValueError(
-            f"Number of feature names ({len(feature_names)}) does not match "
-            f"number of input features ({n_features})"
-        )
-    
-    # Create feature names if not provided
-    if feature_names is None:
-        feature_names = [f"Feature {i+1}" for i in range(n_features)]
-    
-    # Rank features by importance
-    importance_df = pd.DataFrame({
-        'feature': feature_names,
-        'importance': importance_scores
-    })
-    importance_df = importance_df.sort_values('importance', ascending=False)
-    
-    # Select top N features
-    top_features = importance_df.head(top_n)
-    
-    # Create horizontal bar chart (publication quality)
-    fig, ax = plt.subplots(figsize=figsize)
-    
-    # Plot bars (reverse order so highest importance is at top)
-    y_pos = np.arange(len(top_features))
-    bars = ax.barh(
-        y_pos,
-        top_features['importance'].values,
-        color=color,
-        alpha=0.8,
-        edgecolor='black',
-        linewidth=0.5
-    )
-    
-    # Customize appearance
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(top_features['feature'].values)
-    ax.invert_yaxis()  # Highest importance at top
-    
-    ax.set_xlabel('Importance Score (Mean Absolute Weight)', fontsize=11, fontweight='bold')
-    ax.set_ylabel('Molecular Descriptor', fontsize=11, fontweight='bold')
-    
-    if title is None:
-        title = (f'Top {top_n} Molecular Descriptors Ranked by Importance\n'
-                 f'Based on First-Layer Weight Magnitudes')
-    ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
-    
-    # Add value labels on bars
-    for i, (bar, value) in enumerate(zip(bars, top_features['importance'].values)):
-        ax.text(
-            value + max(top_features['importance']) * 0.01,
-            bar.get_y() + bar.get_height() / 2,
-            f'{value:.4f}',
-            va='center',
-            fontsize=8,
-            color='black'
-        )
-    
-    # Add grid for readability
-    ax.grid(axis='x', alpha=0.3, linestyle='--')
-    ax.set_axisbelow(True)
-    
-    # Tight layout
-    plt.tight_layout()
-    
-    # Save if output path provided
-    if output_path:
-        fig.savefig(output_path, dpi=300, bbox_inches='tight')
-        print(f"✓ Saved feature importance plot to {output_path}")
-    
-    # Print summary statistics
-    print(f"\n{'='*60}")
-    print(f"Feature Importance Analysis Summary")
-    print(f"{'='*60}")
-    print(f"Total features: {n_features}")
-    print(f"Top {top_n} features shown")
-    print(f"\nTop 5 most important features:")
-    for i, (idx, row) in enumerate(importance_df.head(5).iterrows(), 1):
-        print(f"  {i}. {row['feature']:30s} {row['importance']:.6f}")
-    print(f"{'='*60}\n")
-    
-    return fig
+        
+        # Customize appearance
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(top_features['feature'].values)
+        ax.invert_yaxis()  # Highest importance at top
+        
+        ax.set_xlabel('Importance Score (Mean Absolute Weight)', fontsize=11, fontweight='bold')
+        ax.set_ylabel('Molecular Descriptor', fontsize=11, fontweight='bold')
+        
+        if title is None:
+            title = (f'Top {top_n} Molecular Descriptors Ranked by Importance\n'
+                     f'Based on First-Layer Weight Magnitudes')
+        ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
+        
+        # Add value labels on bars
+        max_importance = top_features['importance'].max()
+        for i, (bar, value) in enumerate(zip(bars, top_features['importance'].values)):
+            ax.text(
+                value + max_importance * 0.01,
+                bar.get_y() + bar.get_height() / 2,
+                f'{value:.4f}',
+                va='center',
+                fontsize=8,
+                color='black'
+            )
+        
+        # Add grid for readability
+        ax.grid(axis='x', alpha=0.3, linestyle='--')
+        ax.set_axisbelow(True)
+        
+        # Tight layout
+        plt.tight_layout()
+        
+        # Save if output path provided
+        if output_path:
+            fig.savefig(output_path, dpi=300, bbox_inches='tight')
+            print(f"✓ Saved feature importance plot to {output_path}")
+        
+        # ==================== PRINT SUMMARY STATISTICS ====================
+        
+        print(f"\n{'='*60}")
+        print(f"Feature Importance Analysis Summary")
+        print(f"{'='*60}")
+        print(f"Total features: {n_features}")
+        print(f"Top {top_n} features shown")
+        print(f"Weight matrix shape: {weights.shape} (output_dim × input_dim)")
+        print(f"\nTop 5 most important features:")
+        for i, (idx, row) in enumerate(importance_df.head(5).iterrows(), 1):
+            print(f"  {i}. {row['feature']:30s} {row['importance']:.6f}")
+        print(f"{'='*60}\n")
+        
+        return fig
+        
+    except (TypeError, ValueError, RuntimeError) as e:
+        # Re-raise validation errors with context
+        print(f"✗ Error in plot_feature_importance: {e}")
+        raise
+        
+    except Exception as e:
+        # Catch-all for unexpected errors
+        print(f"✗ Unexpected error in plot_feature_importance: {type(e).__name__}: {e}")
+        raise RuntimeError(f"Failed to create feature importance plot: {e}") from e
