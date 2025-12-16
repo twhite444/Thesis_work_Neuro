@@ -231,6 +231,14 @@ def train_nn(
     best_metrics = {}
     epochs_without_improvement = 0
     
+    # Track history for visualization
+    train_losses = []
+    val_losses = []
+    train_correlations = []
+    val_correlations = []
+    train_r2 = []
+    val_r2 = []
+    
     if verbose:
         print(f"\nTraining on {device}")
         print(f"Train samples: {len(train_loader.dataset)}")
@@ -247,6 +255,14 @@ def train_nn(
         
         # Validate
         val_metrics = validate_epoch(model, val_loader, criterion, device, epoch, verbose)
+        
+        # Track history
+        train_losses.append(train_metrics['loss'])
+        val_losses.append(val_metrics['loss'])
+        train_correlations.append(train_metrics.get('correlation', 0.0))
+        val_correlations.append(val_metrics.get('correlation', 0.0))
+        train_r2.append(train_metrics.get('r2', 0.0))
+        val_r2.append(val_metrics.get('r2', 0.0))
         
         # Learning rate scheduling
         scheduler.step(val_metrics['loss'])
@@ -311,9 +327,32 @@ def train_nn(
         'n_val': len(val_loader.dataset),
         'num_epochs': num_epochs,
         'learning_rate': learning_rate,
+        # Add training history for visualization
+        'train_losses': train_losses,
+        'val_losses': val_losses,
+        'train_correlations': train_correlations,
+        'val_correlations': val_correlations,
+        'train_r2': train_r2,
+        'val_r2': val_r2,
     }
     
-    pd.Series(metrics_dict).to_json(os.path.join(output_dir, 'metrics.json'))
+    pd.Series({k: v for k, v in metrics_dict.items() if not isinstance(v, list)}).to_json(
+        os.path.join(output_dir, 'metrics.json')
+    )
+    
+    # Generate visualization
+    try:
+        from src.neuro_foundation.visualization import plot_training_curves
+        plot_training_curves(
+            metrics_dict, 
+            output_path=os.path.join(output_dir, 'training_curves.png'),
+            show_r2=True
+        )
+        if verbose:
+            print(f"  ✓ Saved training curves visualization")
+    except Exception as e:
+        if verbose:
+            print(f"  ⚠️  Could not generate visualization: {e}")
     
     if verbose:
         print(f"\nTraining complete! Best val loss: {best_val_loss:.4f}")
@@ -516,6 +555,20 @@ def train_nn_kfold(
         print(f"\nBest fold: {best_fold} (val_loss={fold_metrics[best_fold_idx]['best_val_loss']:.4f})")
         print(f"Results saved to: {output_dir}")
         print("="*70)
+    
+    # Generate visualization
+    try:
+        from src.neuro_foundation.visualization import plot_cv_results
+        cv_results_path = os.path.join(output_dir, 'cv_results.json')
+        plot_cv_results(
+            cv_results_path,
+            output_path=os.path.join(output_dir, 'cv_analysis.png')
+        )
+        if verbose:
+            print(f"  ✓ Saved cross-validation visualization")
+    except Exception as e:
+        if verbose:
+            print(f"  ⚠️  Could not generate CV visualization: {e}")
     
     return cv_results
 
@@ -814,5 +867,20 @@ def grid_search(
         print(f"  - grid_search_results.json (full results)")
         print(f"  - grid_search_summary.csv (table format)")
         print("="*70)
+    
+    # Generate visualization
+    try:
+        from src.neuro_foundation.visualization import plot_grid_search_results
+        grid_results_path = os.path.join(output_dir, 'grid_search_results.json')
+        plot_grid_search_results(
+            grid_results_path,
+            output_path=os.path.join(output_dir, 'grid_search_analysis.png'),
+            top_n=min(10, len(all_results))
+        )
+        if verbose:
+            print(f"  ✓ Saved grid search visualization")
+    except Exception as e:
+        if verbose:
+            print(f"  ⚠️  Could not generate grid search visualization: {e}")
     
     return grid_search_results
