@@ -17,6 +17,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from neuro_foundation.utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 def compute_metrics(pred: torch.Tensor, target: torch.Tensor) -> Dict[str, float]:
     """Compute evaluation metrics for activity map prediction.
@@ -240,14 +243,13 @@ def train_nn(
     val_r2 = []
     
     if verbose:
-        print(f"\nTraining on {device}")
-        print(f"Train samples: {len(train_loader.dataset)}")
-        print(f"Val samples: {len(val_loader.dataset)}")
-        print(f"Epochs: {num_epochs}")
-        print(f"Learning rate: {learning_rate}")
+        logger.info(f"Training on {device}")
+        logger.info(f"Train samples: {len(train_loader.dataset)}")
+        logger.info(f"Val samples: {len(val_loader.dataset)}")
+        logger.info(f"Epochs: {num_epochs}")
+        logger.info(f"Learning rate: {learning_rate}")
         if early_stopping_patience > 0:
-            print(f"Early stopping patience: {early_stopping_patience}")
-        print()
+            logger.info(f"Early stopping patience: {early_stopping_patience}")
     
     for epoch in range(1, num_epochs + 1):
         # Train
@@ -275,9 +277,9 @@ def train_nn(
         writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], epoch)
         
         if verbose:
-            print(f"Epoch {epoch}/{num_epochs}:")
-            print(f"  Train - Loss: {train_metrics['loss']:.4f}, Corr: {train_metrics['correlation']:.3f}, R²: {train_metrics['r2']:.3f}")
-            print(f"  Val   - Loss: {val_metrics['loss']:.4f}, Corr: {val_metrics['correlation']:.3f}, R²: {val_metrics['r2']:.3f}")
+            logger.info(f"Epoch {epoch}/{num_epochs}:")
+            logger.info(f"  Train - Loss: {train_metrics['loss']:.4f}, Corr: {train_metrics['correlation']:.3f}, R²: {train_metrics['r2']:.3f}")
+            logger.info(f"  Val   - Loss: {val_metrics['loss']:.4f}, Corr: {val_metrics['correlation']:.3f}, R²: {val_metrics['r2']:.3f}")
         
         # Save best model
         if val_metrics['loss'] < best_val_loss:
@@ -295,13 +297,13 @@ def train_nn(
             }, checkpoint_path)
             
             if verbose:
-                print(f"  ✓ Saved best model (val_loss={val_metrics['loss']:.4f})")
+                logger.info(f"  ✓ Saved best model (val_loss={val_metrics['loss']:.4f})")
         else:
             epochs_without_improvement += 1
             if early_stopping_patience > 0 and epochs_without_improvement >= early_stopping_patience:
                 if verbose:
-                    print(f"\n⚠️  Early stopping triggered after {early_stopping_patience} epochs without improvement")
-                    print(f"Best validation loss: {best_val_loss:.4f} at epoch {best_metrics['epoch']}")
+                    logger.warning(f"Early stopping triggered after {early_stopping_patience} epochs without improvement")
+                    logger.info(f"Best validation loss: {best_val_loss:.4f} at epoch {best_metrics['epoch']}")
                 break
         
         # Save checkpoint every 10 epochs
@@ -349,13 +351,13 @@ def train_nn(
             show_r2=True
         )
         if verbose:
-            print(f"  ✓ Saved training curves visualization")
+            logger.info("✓ Saved training curves visualization")
     except Exception as e:
         if verbose:
-            print(f"  ⚠️  Could not generate visualization: {e}")
+            logger.error(f"Could not generate visualization: {e}", exc_info=True)
     
     if verbose:
-        print(f"\nTraining complete! Best val loss: {best_val_loss:.4f}")
+        logger.info(f"Training complete! Best val loss: {best_val_loss:.4f}")
     
     return metrics_dict
 
@@ -425,26 +427,26 @@ def train_nn_kfold(
     fold_metrics = []
     
     if verbose:
-        print("="*70)
-        print(f"K-FOLD CROSS-VALIDATION ({n_splits} folds)")
-        print("="*70)
-        print(f"Total samples: {len(dataset)}")
-        print(f"Samples per fold: ~{len(dataset) // n_splits}")
-        print(f"Epochs per fold: {num_epochs}")
-        print(f"Learning rate: {learning_rate}")
-        print(f"Batch size: {batch_size}")
+        logger.info("="*70)
+        logger.info(f"K-FOLD CROSS-VALIDATION ({n_splits} folds)")
+        logger.info("="*70)
+        logger.info(f"Total samples: {len(dataset)}")
+        logger.info(f"Samples per fold: ~{len(dataset) // n_splits}")
+        logger.info(f"Epochs per fold: {num_epochs}")
+        logger.info(f"Learning rate: {learning_rate}")
+        logger.info(f"Batch size: {batch_size}")
         if early_stopping_patience > 0:
-            print(f"Early stopping: {early_stopping_patience} epochs")
-        print("="*70)
+            logger.info(f"Early stopping: {early_stopping_patience} epochs")
+        logger.info("="*70)
     
     # Iterate over folds
     for fold_idx, (train_indices, val_indices) in enumerate(kf.split(range(len(dataset))), 1):
         if verbose:
-            print(f"\n{'='*70}")
-            print(f"FOLD {fold_idx}/{n_splits}")
-            print(f"{'='*70}")
-            print(f"Train samples: {len(train_indices)}")
-            print(f"Val samples: {len(val_indices)}")
+            logger.info(f"{'='*70}")
+            logger.info(f"FOLD {fold_idx}/{n_splits}")
+            logger.info(f"{'='*70}")
+            logger.info(f"Train samples: {len(train_indices)}")
+            logger.info(f"Val samples: {len(val_indices)}")
         
         # Create subsets for this fold
         train_subset = Subset(dataset, train_indices)
