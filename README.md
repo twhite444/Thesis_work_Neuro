@@ -131,7 +131,13 @@ python scripts/grid_search_baseline.py --model mlp \
 # See docs/ACTIVITY_MAPS_PIPELINE.md for full guide
 ```
 
-#### Performance Profiling ⏱️ NEW!
+**All training automatically generates publication-quality visualizations (300 DPI):**
+- Training curves (loss, correlation, R²)
+- K-fold CV analysis with mean ± std across folds
+- Grid search heatmaps and rankings
+- See [`docs/VISUALIZATION_NN_GUIDE.md`](docs/VISUALIZATION_NN_GUIDE.md) for complete guide
+
+#### Performance Profiling ⏱️
 
 ```bash
 # Complete profiling (dataloader + device comparison + training breakdown)
@@ -159,10 +165,11 @@ See [`docs/PROFILING_QUICKSTART.md`](docs/PROFILING_QUICKSTART.md) for details.
 
 - **[Activity Maps Pipeline](docs/ACTIVITY_MAPS_PIPELINE.md)** - Complete guide to map preprocessing ✨
 - **[Quick Start Guide](docs/QUICK_START.md)** - Fast reference for activity maps ✨
-- **[Performance Improvements](docs/PERFORMANCE_IMPROVEMENTS.md)** - 15-60x speedup details ✨ NEW
-- **[K-Fold CV & Grid Search](docs/KFOLD_AND_GRID_SEARCH.md)** - Hyperparameter optimization guide ✨ NEW
-- **[Profiling Guide](docs/PROFILING_GUIDE.md)** - Complete profiling tutorial (700+ lines) ⏱️ NEW
-- **[Profiling Quick Start](docs/PROFILING_QUICKSTART.md)** - Quick reference for profiling tools ⏱️ NEW
+- **[Performance Improvements](docs/PERFORMANCE_IMPROVEMENTS.md)** - 15-60x speedup details ✨
+- **[K-Fold CV & Grid Search](docs/KFOLD_AND_GRID_SEARCH.md)** - Hyperparameter optimization guide ✨
+- **[NN Visualization Guide](docs/VISUALIZATION_NN_GUIDE.md)** - Complete visualization tutorial 📊 NEW
+- **[Profiling Guide](docs/PROFILING_GUIDE.md)** - Complete profiling tutorial (700+ lines) ⏱️
+- **[Profiling Quick Start](docs/PROFILING_QUICKSTART.md)** - Quick reference for profiling tools ⏱️
 - **[API Documentation](docs/API_DOCUMENTATION.md)** - Complete API reference for all modules
 - **[Testing Guide](docs/TESTING_GUIDE.md)** - How to run and write tests
 - **[Visualization Guide](docs/VISUALIZATION_GUIDE.md)** - Using visualization tools
