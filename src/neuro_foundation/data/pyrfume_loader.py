@@ -4,6 +4,7 @@ from typing import List, NamedTuple
 import numpy as np
 import pandas as pd
 import pyrfume
+from pyrfume.features import smiles_to_mordred
 from .interfaces import DatasetLoader
 
 
@@ -63,6 +64,52 @@ class PyrfumeLoader(DatasetLoader):
         
         print(f"Saved {len(molecules)} molecules to {csv_path} and {npz_path}")
         return molecules
+    
+    def compute_mordred_features(self, molecules: pd.DataFrame = None) -> pd.DataFrame:
+        """Compute Mordred molecular descriptors and cache them.
+        
+        Args:
+            molecules: DataFrame with CID and IsomericSMILES columns.
+                      If None, loads from molecules_raw.npz
+        
+        Returns:
+            DataFrame with CID as index and Mordred descriptors as columns
+        """
+        if molecules is None:
+            # Load from cache
+            molecules = load_molecules_npz(self.output_dir)
+        
+        print(f"\nComputing Mordred descriptors for {len(molecules)} molecules...")
+        print("  This may take a few minutes on first run, but will be cached.")
+        
+        smiles = molecules['IsomericSMILES'].tolist()
+        cids = molecules['CID'].values
+        
+        # Compute Mordred features
+        mordred_features = smiles_to_mordred(smiles)
+        mordred_features.index = cids
+        mordred_features.index.name = 'CID'
+        
+        print(f"  Computed {mordred_features.shape[1]} Mordred descriptors")
+        
+        # Save as CSV (human-readable)
+        csv_path = os.path.join(self.output_dir, 'mordred_features_raw.csv')
+        mordred_features.to_csv(csv_path, index=True)
+        print(f"  ✓ Saved to {csv_path}")
+        
+        # Save as NPZ (fast loading)
+        npz_path = os.path.join(self.output_dir, 'mordred_features_raw.npz')
+        
+        # Convert to dict for npz saving
+        save_dict = {'CID': cids}
+        for col in mordred_features.columns:
+            save_dict[col] = mordred_features[col].values
+        
+        np.savez_compressed(npz_path, **save_dict)
+        print(f"  ✓ Saved to {npz_path}")
+        print(f"  Shape: {len(mordred_features)} molecules × {len(mordred_features.columns)} descriptors\n")
+        
+        return mordred_features
     
     def load_behavior(self) -> pd.DataFrame:
         """Load behavior data from Pyrfume, clean, and save to CSV + NPZ."""
@@ -235,6 +282,48 @@ def load_molecules_npz(data_dir: str = "data/01_raw") -> pd.DataFrame:
         'IUPACName': data['IUPACName'],
         'name': data['name']
     })
+
+
+def load_mordred_features_csv(data_dir: str = "data/01_raw") -> pd.DataFrame:
+    """Load Mordred features from cached CSV file.
+    
+    Returns:
+        DataFrame with CID as index and Mordred descriptors as columns
+    """
+    csv_path = os.path.join(data_dir, 'mordred_features_raw.csv')
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(
+            f"Mordred features not found at {csv_path}. "
+            "Run 'python scripts/load_all_data.py' first to compute features."
+        )
+    return pd.read_csv(csv_path, index_col='CID')
+
+
+def load_mordred_features_npz(data_dir: str = "data/01_raw") -> pd.DataFrame:
+    """Load Mordred features from cached NPZ file (faster than CSV).
+    
+    Returns:
+        DataFrame with CID as index and Mordred descriptors as columns
+    """
+    npz_path = os.path.join(data_dir, 'mordred_features_raw.npz')
+    if not os.path.exists(npz_path):
+        raise FileNotFoundError(
+            f"Mordred features not found at {npz_path}. "
+            "Run 'python scripts/load_all_data.py' first to compute features."
+        )
+    
+    data = np.load(npz_path, allow_pickle=True)
+    cids = data['CID']
+    
+    # Build DataFrame from all columns except CID
+    feature_dict = {}
+    for key in data.files:
+        if key != 'CID':
+            feature_dict[key] = data[key]
+    
+    df = pd.DataFrame(feature_dict, index=cids)
+    df.index.name = 'CID'
+    return df
 
 
 def load_behavior_csv(data_dir: str = "data/01_raw") -> pd.DataFrame:

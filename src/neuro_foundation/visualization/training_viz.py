@@ -805,7 +805,7 @@ def plot_feature_importance(
         >>> import pandas as pd
         >>> 
         >>> # Load feature names
-        >>> features_df = pd.read_csv('data/02_processed/selected_features.csv')
+    >>> features_df = pd.read_csv('data/02_processed/cleaned_data.csv')
         >>> feature_names = [col for col in features_df.columns if col != 'CID']
         >>> 
         >>> # Load trained model

@@ -31,6 +31,12 @@ def main(output_dir: str, skip_activity_maps: bool = False):
     print(f"✓ Loaded {len(molecules)} unique molecules\n")
     
     print("=" * 70)
+    print("Computing Mordred molecular descriptors...")
+    print("=" * 70)
+    mordred_features = loader.compute_mordred_features(molecules)
+    print(f"✓ Computed {mordred_features.shape[1]} descriptors for {len(mordred_features)} molecules\n")
+    
+    print("=" * 70)
     print("Loading behavior data from Pyrfume...")
     print("=" * 70)
     behavior = loader.load_behavior()
@@ -57,6 +63,7 @@ def main(output_dir: str, skip_activity_maps: bool = False):
     print("=" * 70)
     print(f"Output directory: {output_dir}")
     print(f"  - molecules_raw.csv / .npz: {len(molecules)} molecules")
+    print(f"  - mordred_features_raw.csv / .npz: {mordred_features.shape[1]} descriptors")
     print(f"  - behavior_data.csv / .npz: {len(behavior)} entries")
     print(f"  - stimuli_metadata.csv / .npz: {len(stimuli)} entries")
     if not skip_activity_maps:
@@ -64,8 +71,8 @@ def main(output_dir: str, skip_activity_maps: bool = False):
         print(f"  - activity_maps_csv/: {len(activity_maps)} individual CSV files")
     print("\nFiles can be loaded using:")
     print("  from src.neuro_foundation.data.pyrfume_loader import (")
-    print("      load_molecules_csv, load_behavior_csv, load_stimuli_csv,")
-    print("      load_activity_maps_npz")
+    print("      load_molecules_csv, load_mordred_features_npz,")
+    print("      load_behavior_csv, load_stimuli_csv, load_activity_maps_npz")
     print("  )")
 
 

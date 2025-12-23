@@ -1,7 +1,8 @@
 """PyTorch datasets for molecular structure to activity map prediction.
 
+
 Uses:
-- Pre-computed molecular features from data/02_processed/selected_features.csv
+- Pre-computed molecular features from data/02_processed/cleaned_data.csv
 - Pre-processed activity maps from data/02_processed/processed_maps.npz
 
 Both are already selected (one per CID), masked (global mask applied), and aligned.
@@ -20,11 +21,13 @@ from torch.utils.data import Dataset
 class MoleculeActivityMapDataset(Dataset):
     """Dataset for molecular structure → activity map prediction.
     
-    Loads:
-    - Pre-computed molecular features from data/02_processed/selected_features.csv
-    - Pre-processed activity maps from data/02_processed/processed_maps.npz
+
+        Loads:
+        - Pre-computed molecular features from data/02_processed/cleaned_data.csv
+        - Pre-processed activity maps from data/02_processed/processed_maps.npz
+            OR PCA-transformed maps from data/02_processed/pca_transformed_maps.npz
     
-    Features are already standardized and variance-selected (268 features).
+    Features are already standardized and variance-selected (see preprocess pipeline).
     Maps are already selected (one per CID) and masked (global mask applied).
     CID is used to align features with activity maps.
     
@@ -33,6 +36,7 @@ class MoleculeActivityMapDataset(Dataset):
         transform: Optional transform to apply to activity maps
         split: Which split to use ('train', 'val', 'test', or None for all data)
         random_seed: Random seed for reproducible splits (default: 42)
+        use_pca: If True, load PCA-transformed maps instead of raw maps (default: False)
     """
     
     def __init__(
@@ -41,6 +45,7 @@ class MoleculeActivityMapDataset(Dataset):
         transform: Optional[callable] = None,
         split: Optional[str] = None,
         random_seed: int = 42,
+        use_pca: bool = False,
     ):
         super().__init__()
         
@@ -48,6 +53,7 @@ class MoleculeActivityMapDataset(Dataset):
         self.transform = transform
         self.split = split
         self.random_seed = random_seed
+        self.use_pca = use_pca
         
         # Load data
         self._load_data()
@@ -61,30 +67,56 @@ class MoleculeActivityMapDataset(Dataset):
         """Return the number of input features."""
         return self.features.shape[1]
     
+    @property
+    def output_dim(self):
+        """Return the number of output dimensions (map size or n_components for PCA)."""
+        if self.use_pca:
+            return self.maps.shape[1]  # n_components
+        else:
+            return self.maps.shape[1] * self.maps.shape[2]  # height * width
+    
+    @property
+    def output_shape(self):
+        """Return the output shape (for raw maps) or None (for PCA)."""
+        if self.use_pca:
+            return None  # PCA outputs are 1D
+        else:
+            return (self.maps.shape[1], self.maps.shape[2])  # (height, width)
     
     def _load_data(self):
         """Load pre-computed molecular features and pre-processed activity maps."""
-        # Load pre-computed selected features (CID as index)
-        features_path = self.processed_dir / "selected_features.csv"
+        # Load pre-computed features (CID as index)
+        features_path = self.processed_dir / "cleaned_data.csv"
         if not features_path.exists():
             raise FileNotFoundError(
-                f"Selected features not found at {features_path}. "
-                "Run 'python scripts/preprocess.py' and 'python scripts/select_features.py' first."
+                f"Processed features not found at {features_path}. "
+                "Run 'python scripts/preprocess.py' first."
             )
-        
         self.features = pd.read_csv(features_path, index_col='CID')
         
-        # Load pre-processed activity maps
-        maps_path = self.processed_dir / "processed_maps.npz"
-        if not maps_path.exists():
-            raise FileNotFoundError(
-                f"Processed maps not found at {maps_path}. "
-                "Run 'python scripts/run_activity_maps.py' first to generate processed maps."
-            )
-        
-        maps_data = np.load(maps_path)
-        self.maps = maps_data['maps']  # (n_molecules, 79, 43)
-        self.map_cids = maps_data['cids']
+        # Load activity maps (raw or PCA-transformed)
+        if self.use_pca:
+            maps_path = self.processed_dir / "pca_transformed_maps.npz"
+            if not maps_path.exists():
+                raise FileNotFoundError(
+                    f"PCA-transformed maps not found at {maps_path}. "
+                    "Run fit_pca_on_maps() or process_activity_maps_with_pca() first."
+                )
+            maps_data = np.load(maps_path)
+            self.maps = maps_data['pca_maps']  # (n_molecules, n_components)
+            self.map_cids = maps_data['cids']
+            self.n_components = maps_data['n_components'].item()
+            print(f"Loading PCA-transformed maps with {self.n_components} components")
+        else:
+            maps_path = self.processed_dir / "processed_maps.npz"
+            if not maps_path.exists():
+                raise FileNotFoundError(
+                    f"Processed maps not found at {maps_path}. "
+                    "Run 'python scripts/run_activity_maps.py' first to generate processed maps."
+                )
+            maps_data = np.load(maps_path)
+            self.maps = maps_data['maps']  # (n_molecules, 79, 43)
+            self.map_cids = maps_data['cids']
         
         # Align features with maps using CID
         common_cids = np.intersect1d(self.features.index, self.map_cids)
@@ -92,7 +124,7 @@ class MoleculeActivityMapDataset(Dataset):
         if not common_cids.size:  # NumPy array - use .size
             raise ValueError(
                 "No common CIDs found between features and maps. "
-                "Regenerate both processed_maps.npz and selected_features.csv"
+                "Regenerate both processed_maps.npz and cleaned_data.csv"
             )
         
         # Filter and align
@@ -145,32 +177,33 @@ class MoleculeActivityMapDataset(Dataset):
             idx: Sample index
             
         Returns:
-            Tuple of (features, activity_map, metadata)
+            Tuple of (features, target, metadata)
             - features: Pre-computed molecular features (268-dim tensor)
-            - activity_map: Pre-processed activity map (79, 43 tensor)
-            - metadata: Dict with CID and index
+            - target: Activity map (79, 43 tensor) OR PCA components (n_components tensor)
+            - metadata: Dict with CID, index, and target type
         """
         # Get pre-computed features
         features = self.features.iloc[idx].values.astype(np.float32)
         
-        # Get pre-processed activity map (already selected and masked)
-        activity_map = self.maps[idx].astype(np.float32)
+        # Get target (activity map or PCA components)
+        target = self.maps[idx].astype(np.float32)
         
         # Apply transform if specified
         if self.transform is not None:
-            activity_map = self.transform(activity_map)
+            target = self.transform(target)
         
         # Convert to tensors
         features = torch.tensor(features, dtype=torch.float32)
-        activity_map = torch.tensor(activity_map, dtype=torch.float32)
+        target = torch.tensor(target, dtype=torch.float32)
         
         # Metadata
         metadata = {
             'cid': int(self.cids[idx]),
             'index': idx,
+            'target_type': 'pca' if self.use_pca else 'raw_map',
         }
         
-        return features, activity_map, metadata
+        return features, target, metadata
 
 
 def get_dataloaders(
@@ -178,6 +211,7 @@ def get_dataloaders(
     batch_size: int = 32,
     num_workers: int = 0,
     random_seed: int = 42,
+    use_pca: bool = False,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Create train, validation, and test dataloaders using pre-processed data.
     
@@ -186,6 +220,7 @@ def get_dataloaders(
         batch_size: Batch size for dataloaders
         num_workers: Number of worker processes for data loading (0 recommended for macOS/MPS)
         random_seed: Random seed for reproducible splits
+        use_pca: If True, use PCA-transformed maps as targets instead of raw maps
         
     Returns:
         Tuple of (train_loader, val_loader, test_loader)
@@ -197,10 +232,18 @@ def get_dataloaders(
         - Batch size 32 provides good balance of speed and memory
         
     Example:
+        >>> # Load raw activity maps
         >>> train_loader, val_loader, test_loader = get_dataloaders(
         ...     processed_dir="data/02_processed",
         ...     batch_size=32,
-        ...     num_workers=0
+        ...     use_pca=False
+        ... )
+        >>> 
+        >>> # Load PCA-transformed maps (faster training, lower memory)
+        >>> train_loader, val_loader, test_loader = get_dataloaders(
+        ...     processed_dir="data/02_processed",
+        ...     batch_size=32,
+        ...     use_pca=True
         ... )
     """
     from torch.utils.data import DataLoader
@@ -210,18 +253,21 @@ def get_dataloaders(
         processed_dir=processed_dir,
         split='train',
         random_seed=random_seed,
+        use_pca=use_pca,
     )
     
     val_dataset = MoleculeActivityMapDataset(
         processed_dir=processed_dir,
         split='val',
         random_seed=random_seed,
+        use_pca=use_pca,
     )
     
     test_dataset = MoleculeActivityMapDataset(
         processed_dir=processed_dir,
         split='test',
         random_seed=random_seed,
+        use_pca=use_pca,
     )
     
     # Create dataloaders

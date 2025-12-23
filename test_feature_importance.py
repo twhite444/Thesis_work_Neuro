@@ -26,7 +26,7 @@ from neuro_foundation.visualization import plot_feature_importance
 
 
 def load_feature_names(processed_dir: str = "data/02_processed") -> list[str]:
-    """Load feature names from selected_features.csv.
+    """Load feature names from cleaned_data.csv.
     
     Args:
         processed_dir: Directory containing processed data
@@ -34,7 +34,7 @@ def load_feature_names(processed_dir: str = "data/02_processed") -> list[str]:
     Returns:
         List of feature names (excludes 'CID' column)
     """
-    features_path = Path(processed_dir) / "selected_features.csv"
+    features_path = Path(processed_dir) / "cleaned_data.csv"
     
     if not features_path.exists():
         raise FileNotFoundError(

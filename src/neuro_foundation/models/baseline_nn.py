@@ -1,14 +1,17 @@
 """Baseline neural network models for molecular structure to activity map prediction.
 
 Models:
-- MoleculeToActivityMapMLP: Simple feedforward network (descriptors → flat output)
+- MoleculeToActivityMapMLP: Simple feedforward network (descriptors → flat output or PCA components)
 - MoleculeToActivityMapCNN: CNN decoder network (descriptors → spatial map)
+- MoleculeToPCAMLP: Simplified MLP for predicting PCA components directly
+
+Note: MoleculeToPCAMLP is recommended when use_pca=True for efficiency.
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple
+from typing import Tuple, Optional
 
 
 class MoleculeToActivityMapMLP(nn.Module):
@@ -213,9 +216,70 @@ def get_model(model_type: str, input_dim: int, **kwargs) -> nn.Module:
     models = {
         'mlp': MoleculeToActivityMapMLP,
         'cnn': MoleculeToActivityMapCNN,
+        'pca_mlp': MoleculeToPCAMLP,
     }
     
     if model_type not in models:
         raise ValueError(f"Unknown model type: {model_type}. Choose from {list(models.keys())}")
     
     return models[model_type](input_dim=input_dim, **kwargs)
+
+
+class MoleculeToPCAMLP(nn.Module):
+    """Simplified MLP for predicting PCA components from molecular descriptors.
+    
+    This is a more efficient model for when targets are PCA-transformed activity maps.
+    Instead of predicting 3397-dim flattened maps, predicts n_components (e.g., 20).
+    
+    Architecture:
+        Input: Molecular descriptors
+        Hidden layers: 256 → 128 (smaller than full map prediction)
+        Dropout: 0.3
+        Output: PCA components (n_components-dim vector)
+    
+    Args:
+        input_dim: Dimension of input molecular descriptors
+        n_components: Number of PCA components to predict
+        hidden_dims: List of hidden layer dimensions (default: [256, 128])
+        dropout: Dropout probability (default: 0.3)
+    """
+    
+    def __init__(
+        self,
+        input_dim: int,
+        n_components: int = 20,
+        hidden_dims: list[int] = [256, 128],
+        dropout: float = 0.3,
+    ):
+        super().__init__()
+        
+        self.input_dim = input_dim
+        self.n_components = n_components
+        
+        # Build MLP layers
+        layers = []
+        prev_dim = input_dim
+        
+        for hidden_dim in hidden_dims:
+            layers.extend([
+                nn.Linear(prev_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+            ])
+            prev_dim = hidden_dim
+        
+        # Final output layer (to PCA components)
+        layers.append(nn.Linear(prev_dim, n_components))
+        
+        self.network = nn.Sequential(*layers)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+        
+        Args:
+            x: Input molecular descriptors (batch_size, input_dim)
+            
+        Returns:
+            Predicted PCA components (batch_size, n_components)
+        """
+        return self.network(x)

@@ -1,8 +1,8 @@
 {
-  "coverage_threshold": 0.5,
+  "coverage_threshold": 0.999,
   "min_region_size": 100,
   "n_maps": 405,
-  "active_pixels": 2212,
+  "active_pixels": 1738,
   "total_pixels": 3397,
-  "coverage_fraction": 0.6511627906976745
+  "coverage_fraction": 0.5116279069767442
 }

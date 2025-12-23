@@ -26,7 +26,7 @@ python scripts/preprocess.py
 
 # Select informative features
 python scripts/select_features.py
-# Outputs: data/02_processed/selected_features.csv (287 × 268)
+# Outputs: data/02_processed/cleaned_data.csv (287 × N)
 ```
 
 ### Step 3: Process Activity Maps ⭐ NEW

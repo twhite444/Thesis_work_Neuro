@@ -73,14 +73,14 @@ python scripts/select_features.py \
   --output-dir data/02_processed
 ```
 
-**Output**: `data/02_processed/selected_features.csv` (filtered features)
+**Output**: `data/02_processed/cleaned_data.csv` (filtered features)
 
 ---
 
 **`train_linear.py`** - Train linear regression model
 ```bash
 python scripts/train_linear.py \
-  --input-csv data/02_processed/selected_features.csv \
+  --input-csv data/02_processed/cleaned_data.csv \
   --output-dir data/02_processed
 ```
 

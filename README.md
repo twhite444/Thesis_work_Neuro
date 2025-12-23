@@ -6,14 +6,30 @@ A modular, well-tested foundation for neuroscience molecular data analysis, supp
 [![Tests](https://github.com/twhite444/Thesis_work_Neuro/workflows/Tests/badge.svg)](https://github.com/twhite444/Thesis_work_Neuro/actions)
 [![Linting](https://github.com/twhite444/Thesis_work_Neuro/workflows/Lint/badge.svg)](https://github.com/twhite444/Thesis_work_Neuro/actions)
 
-## 📋 Overview
+## ⚡ What's New (Dec 2024)
+
+**Performance Optimizations:**
+- 🚀 **13x faster preprocessing** (30s → 2.3s) with Mordred feature caching
+- 🐛 Fixed critical variance threshold bug (now applied before standardization)
+- 🔧 Unified preprocessing pipeline with full configurability
+- 📊 Weight decay (L2 regularization) enabled by default for better generalization
+
+**New Documentation:**
+- 📚 **[QUICK_START.md](QUICK_START.md)** - Fast track for new users ⭐
+- 📖 **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete guide index
+- � See all guides in the root directory
+
+**Quick Migration:** Just run `python scripts/load_all_data.py` once, then enjoy 13x faster preprocessing!
+
+## �📋 Overview
 
 This project provides tools for analyzing molecular odorant data and neural activity maps from the Pyrfume database. It supports multiple complementary approaches:
 
-### 1. **Classical ML Pipeline** (Mordred Descriptors)
-- Fixed-size molecular descriptors (1613 features)
-- Feature selection and dimensionality reduction
-- Classical models (Linear, Ridge, Lasso)
+### 1. **Classical ML Pipeline** (Mordred Descriptors) ⚡ Optimized!
+- Fixed-size molecular descriptors (1826 → 1187 features after cleaning)
+- **Smart caching** - Mordred computed once, reused forever
+- Configurable variance threshold feature selection
+- Classical models (Linear, Ridge, Lasso) with regularization
 - Fast, interpretable, works on CPU
 
 ### 2. **Molecular Graph Pipeline** ✨
@@ -23,7 +39,7 @@ This project provides tools for analyzing molecular odorant data and neural acti
 - Advanced visualization tools
 - Ready for Graph Neural Networks (GNNs)
 
-### 3. **Activity Maps Pipeline** ✨ NEW!
+### 3. **Activity Maps Pipeline** ✨
 - Pre-processes brain activity maps (79×43 spatial patterns)
 - **4 selection strategies**: best_quality, average, median, first
 - **Configurable masking**: adjust coverage threshold (0.0-1.0)

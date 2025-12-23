@@ -332,7 +332,7 @@ import pandas as pd
 import torch
 
 # Load feature names
-features_df = pd.read_csv('data/02_processed/selected_features.csv')
+features_df = pd.read_csv('data/02_processed/cleaned_data.csv')
 feature_names = [col for col in features_df.columns if col != 'CID']
 
 # Load trained model
@@ -544,7 +544,7 @@ from src.neuro_foundation.visualization import plot_feature_importance
 from src.neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP
 
 # Load feature names from processed data
-features_df = pd.read_csv('data/02_processed/selected_features.csv')
+features_df = pd.read_csv('data/02_processed/cleaned_data.csv')
 feature_names = [col for col in features_df.columns if col != 'CID']
 
 print(f"Loaded {len(feature_names)} feature names")

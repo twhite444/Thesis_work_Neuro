@@ -4,12 +4,12 @@ import pandas as pd
 from sklearn.feature_selection import VarianceThreshold
 
 
-def select_features(df: pd.DataFrame, threshold: float = 1.0, output_dir: str = "data/02_processed") -> pd.DataFrame:
+def select_features(df: pd.DataFrame, threshold: float = 0.0, output_dir: str = "data/02_processed") -> pd.DataFrame:
     """Select features using variance threshold while preserving CID index.
     
     Args:
         df: DataFrame with CID as index
-        threshold: Variance threshold for feature selection
+        threshold: Variance threshold for feature selection (default: 0.0 removes only constant features)
         output_dir: Directory to save selected features
         
     Returns:
