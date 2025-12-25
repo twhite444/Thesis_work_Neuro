@@ -11,29 +11,18 @@ Main Features:
 - Modular Design: Clean separation of data loading, preprocessing, training, and visualization
 
 Quick Start:
-    from neuro_foundation import Config, load_data, preprocess_data, train_model
+    from neuro_foundation.data import PyrfumeLoader
+    from neuro_foundation.pipeline import featurize_and_standardize
+    from neuro_foundation.models import MoleculeToActivityMapMLP
 
-    # Load and preprocess data
-    config = Config()
-    molecules, behavior, activity_maps = load_data()
-    features = preprocess_data(molecules)
+    # Load data
+    loader = PyrfumeLoader()
+    molecules = loader.load_molecules()
 
-    # Train a model
-    model = train_model(features, behavior['intensity'])
+    # Process features
+    features = featurize_and_standardize(molecules)
 """
 
-from .config import Config, default_config
-from .data import load_molecules, load_behavior, load_activity_maps
-from .pipeline import preprocess_data, train_linear_model, train_nn_model
+from . import config, data, models, pipeline, utils, visualization
 
 __version__ = "0.1.0"
-__all__ = [
-    "Config",
-    "default_config",
-    "load_molecules",
-    "load_behavior",
-    "load_activity_maps",
-    "preprocess_data",
-    "train_linear_model",
-    "train_nn_model",
-]

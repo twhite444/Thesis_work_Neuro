@@ -6,13 +6,13 @@ feature selection, and model training pipelines.
 
 from .preprocess import featurize_and_standardize
 from .feature_select import select_features
-from .train_linear import train_linear_model
+from .train_linear import train_linear_regression
 from .train_nn import train_nn, train_nn_kfold, grid_search
 
 __all__ = [
     "featurize_and_standardize",
     "select_features",
-    "train_linear_model",
+    "train_linear_regression",
     "train_nn",
     "train_nn_kfold",
     "grid_search",
