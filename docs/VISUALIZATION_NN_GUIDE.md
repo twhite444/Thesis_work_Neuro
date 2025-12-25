@@ -50,7 +50,7 @@ python scripts/grid_search_baseline.py --model mlp --param dropout 0.3 0.35 0.4
 
 **Example:**
 ```python
-from src.olfactory_modeling.pipeline.train_nn import train_nn
+from olfactory_modeling.pipeline.train_nn import train_nn
 
 metrics = train_nn(
     model=model,
@@ -75,7 +75,7 @@ metrics = train_nn(
 
 **Example:**
 ```python
-from src.olfactory_modeling.pipeline.train_nn import train_nn_kfold
+from olfactory_modeling.pipeline.train_nn import train_nn_kfold
 
 cv_results = train_nn_kfold(
     model_factory=model_factory,
@@ -100,7 +100,7 @@ cv_results = train_nn_kfold(
 
 **Example:**
 ```python
-from src.olfactory_modeling.pipeline.train_nn import grid_search
+from olfactory_modeling.pipeline.train_nn import grid_search
 
 grid_results = grid_search(
     model_factory_template=model_factory_template,
@@ -123,7 +123,7 @@ All visualization functions can also be used standalone for custom analysis.
 
 **Usage:**
 ```python
-from src.olfactory_modeling.visualization import plot_training_curves
+from olfactory_modeling.visualization import plot_training_curves
 
 # After training
 metrics = train_nn(...)
@@ -151,7 +151,7 @@ fig = plot_training_curves(
 
 **Usage:**
 ```python
-from src.olfactory_modeling.visualization import plot_cv_results
+from olfactory_modeling.visualization import plot_cv_results
 
 fig = plot_cv_results(
     'experiments/my_cv/cv_results.json',
@@ -179,7 +179,7 @@ fig = plot_cv_results(
 
 **Usage:**
 ```python
-from src.olfactory_modeling.visualization import plot_grid_search_results
+from olfactory_modeling.visualization import plot_grid_search_results
 
 fig = plot_grid_search_results(
     'experiments/grid_search/grid_search_results.json',
@@ -210,7 +210,7 @@ fig = plot_grid_search_results(
 
 **Usage:**
 ```python
-from src.olfactory_modeling.visualization import plot_prediction_scatter
+from olfactory_modeling.visualization import plot_prediction_scatter
 import numpy as np
 
 # Get predictions
@@ -258,7 +258,7 @@ fig = plot_prediction_scatter(
 
 **Usage:**
 ```python
-from src.olfactory_modeling.visualization import plot_activity_map_comparison
+from olfactory_modeling.visualization import plot_activity_map_comparison
 
 fig = plot_activity_map_comparison(
     predictions,  # (N, H, W) array
@@ -292,7 +292,7 @@ fig = plot_activity_map_comparison(
 
 **Usage:**
 ```python
-from src.olfactory_modeling.visualization import create_training_report
+from olfactory_modeling.visualization import create_training_report
 
 fig = create_training_report(
     metrics,
@@ -327,7 +327,7 @@ Ranks molecular descriptors by importance score (mean absolute magnitude of firs
 
 **Usage:**
 ```python
-from src.olfactory_modeling.visualization import plot_feature_importance
+from olfactory_modeling.visualization import plot_feature_importance
 import pandas as pd
 import torch
 
@@ -336,7 +336,7 @@ features_df = pd.read_csv('data/02_processed/cleaned_data.csv')
 feature_names = [col for col in features_df.columns if col != 'CID']
 
 # Load trained model
-from src.olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
+from olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
 model = MoleculeToActivityMapMLP(input_dim=268, output_shape=(79, 43))
 model.load_state_dict(torch.load('experiments/best_model/best_model.pth'))
 
@@ -409,9 +409,9 @@ Top 5 most important features:
 
 ```python
 import torch
-from src.olfactory_modeling.data.activity_map_dataset import get_dataloaders
-from src.olfactory_modeling.models.baseline_nn import get_model
-from src.olfactory_modeling.pipeline.train_nn import train_nn
+from olfactory_modeling.data.activity_map_dataset import get_dataloaders
+from olfactory_modeling.models.baseline_nn import get_model
+from olfactory_modeling.pipeline.train_nn import train_nn
 
 # Get data
 train_loader, val_loader, test_loader = get_dataloaders(batch_size=32)
@@ -435,8 +435,8 @@ print(f"✓ Training curves saved to experiments/baseline_mlp/training_curves.pn
 ### Example 2: K-Fold CV with Custom Visualization
 
 ```python
-from src.olfactory_modeling.pipeline.train_nn import train_nn_kfold
-from src.olfactory_modeling.visualization import plot_cv_results
+from olfactory_modeling.pipeline.train_nn import train_nn_kfold
+from olfactory_modeling.visualization import plot_cv_results
 
 # Run K-fold CV (auto-generates cv_analysis.png)
 cv_results = train_nn_kfold(
@@ -458,8 +458,8 @@ fig = plot_cv_results(
 ### Example 3: Grid Search with Results Analysis
 
 ```python
-from src.olfactory_modeling.pipeline.train_nn import grid_search
-from src.olfactory_modeling.visualization import plot_grid_search_results
+from olfactory_modeling.pipeline.train_nn import grid_search
+from olfactory_modeling.visualization import plot_grid_search_results
 
 # Define model factory with hyperparameters
 def model_factory_template(dropout=0.35, hidden_dims=[512, 256, 128]):
@@ -492,7 +492,7 @@ print(f"Best score: {grid_results['best_score']:.4f}")
 ```python
 import torch
 import numpy as np
-from src.olfactory_modeling.visualization import (
+from olfactory_modeling.visualization import (
     plot_prediction_scatter,
     plot_activity_map_comparison,
     create_training_report,
@@ -540,8 +540,8 @@ print("✓ Complete analysis saved to experiments/analysis/")
 ```python
 import pandas as pd
 import torch
-from src.olfactory_modeling.visualization import plot_feature_importance
-from src.olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
+from olfactory_modeling.visualization import plot_feature_importance
+from olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
 
 # Load feature names from processed data
 features_df = pd.read_csv('data/02_processed/cleaned_data.csv')

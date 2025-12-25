@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from src.olfactory_modeling.pipeline.feature_select import select_features
+from olfactory_modeling.pipeline.feature_select import select_features
 
 
 @pytest.mark.unit

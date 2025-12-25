@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 # Add project root to path (go up 2 levels from scripts/exploration/)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.olfactory_modeling.data.pyrfume_loader import (
+from olfactory_modeling.data.pyrfume_loader import (
     load_activity_maps_by_cid,
     load_stimuli_npz,
 )

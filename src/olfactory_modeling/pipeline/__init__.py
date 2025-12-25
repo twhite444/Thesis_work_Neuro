@@ -1,4 +1,4 @@
-"""Core processing pipelines for neuro_foundation.
+"""Core processing pipelines for olfactory_modeling.
 
 Contains the main data processing workflows including preprocessing,
 feature selection, and model training pipelines.

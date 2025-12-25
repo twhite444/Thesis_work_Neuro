@@ -6,9 +6,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import torch
-from src.olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
-from src.olfactory_modeling.models.baseline_nn import get_model
-from src.olfactory_modeling.pipeline.train_nn import train_nn, train_nn_kfold, grid_search
+from olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
+from olfactory_modeling.models.baseline_nn import get_model
+from olfactory_modeling.pipeline.train_nn import train_nn, train_nn_kfold, grid_search
 
 print("="*70)
 print("TESTING NEW FEATURES")
@@ -69,7 +69,7 @@ print(f"   ✓ 2-fold CV complete: correlation = {mean_corr:.3f} ± {std_corr:.3
 
 # Test 3: Grid search (small grid, no CV for speed)
 print("\n4. Testing grid search...")
-from src.olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
+from olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
 
 def model_factory_template(dropout=0.35):
     return MoleculeToActivityMapMLP(

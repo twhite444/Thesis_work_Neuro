@@ -7,10 +7,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import torch
 import numpy as np
-from src.olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
-from src.olfactory_modeling.models.baseline_nn import get_model
-from src.olfactory_modeling.pipeline.train_nn import train_nn
-from src.olfactory_modeling.visualization import (
+from olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
+from olfactory_modeling.models.baseline_nn import get_model
+from olfactory_modeling.pipeline.train_nn import train_nn
+from olfactory_modeling.visualization import (
     plot_training_curves,
     plot_prediction_scatter,
     plot_activity_map_comparison,

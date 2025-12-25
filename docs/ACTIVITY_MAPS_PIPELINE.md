@@ -247,7 +247,7 @@ After running the pipeline, you'll find these files in `data/02_processed/`:
 The dataset automatically loads pre-processed maps:
 
 ```python
-from src.olfactory_modeling.data.activity_map_dataset import get_dataloaders
+from olfactory_modeling.data.activity_map_dataset import get_dataloaders
 
 # Dataloaders automatically use processed maps from data/02_processed/
 train_loader, val_loader, test_loader = get_dataloaders(

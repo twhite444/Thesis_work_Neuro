@@ -42,7 +42,7 @@ class TestLoggingSetup:
             log_dir = Path(tmpdir)
             setup_logging(log_level="INFO", log_dir=log_dir, console=False)
             
-            log_files = list(log_dir.glob("neuro_foundation_*.log"))
+            log_files = list(log_dir.glob("olfactory_modeling_*.log"))
             assert len(log_files) == 1
     
     def test_get_logger(self):

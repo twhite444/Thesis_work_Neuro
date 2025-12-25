@@ -517,7 +517,7 @@ def train_nn(
     
     # Generate visualization with error handling
     try:
-        from src.olfactory_modeling.visualization import plot_training_curves
+        from olfactory_modeling.visualization import plot_training_curves
         generate_visualization_safe(
             plot_training_curves,
             metrics_dict,
@@ -723,7 +723,7 @@ def train_nn_kfold(
     
     # Generate visualization with error handling
     try:
-        from src.olfactory_modeling.visualization import plot_cv_results
+        from olfactory_modeling.visualization import plot_cv_results
         cv_results_path = os.path.join(output_dir, 'cv_results.json')
         generate_visualization_safe(
             plot_cv_results,
@@ -1034,7 +1034,7 @@ def grid_search(
     
     # Generate visualization with error handling
     try:
-        from src.olfactory_modeling.visualization import plot_grid_search_results
+        from olfactory_modeling.visualization import plot_grid_search_results
         grid_results_path = os.path.join(output_dir, 'grid_search_results.json')
         generate_visualization_safe(
             plot_grid_search_results,

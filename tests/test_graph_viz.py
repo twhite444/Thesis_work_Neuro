@@ -8,7 +8,7 @@ import tempfile
 import os
 from unittest.mock import patch, MagicMock
 
-from src.olfactory_modeling.data.molecular_graphs import (
+from olfactory_modeling.data.molecular_graphs import (
     smiles_to_graph,
     molecules_to_graphs,
     load_graph_by_cid
@@ -274,7 +274,7 @@ class TestVisualizationFunctions:
     @patch('src.olfactory_modeling.data.graph_viz.draw_molecule_from_smiles')
     def test_visualize_molecular_graph_simple_2d(self, mock_draw, mock_graph_data):
         """Test simple 2D visualization."""
-        from src.olfactory_modeling.data.graph_viz import visualize_molecular_graph
+        from olfactory_modeling.data.graph_viz import visualize_molecular_graph
         
         mock_draw.return_value = MagicMock()  # Mock PIL Image
         
@@ -295,7 +295,7 @@ class TestVisualizationFunctions:
     @patch('src.olfactory_modeling.data.graph_viz.visualize_molecule_3d_pymol')
     def test_visualize_molecular_graph_simple_3d_pymol(self, mock_pymol, mock_graph_data, mock_molecules_df):
         """Test simple 3D visualization with PyMOL."""
-        from src.olfactory_modeling.data.graph_viz import visualize_molecular_graph
+        from olfactory_modeling.data.graph_viz import visualize_molecular_graph
         
         mock_pymol.return_value = True  # Success
         
@@ -316,7 +316,7 @@ class TestVisualizationFunctions:
     
     def test_visualization_creates_output_directory(self, mock_graph_data):
         """Test that visualization creates output directory if needed."""
-        from src.olfactory_modeling.data.graph_viz import visualize_molecular_graph
+        from olfactory_modeling.data.graph_viz import visualize_molecular_graph
         
         with tempfile.TemporaryDirectory() as tmpdir:
             nested_path = Path(tmpdir) / 'deep' / 'nested' / 'path' / 'test.png'
@@ -363,7 +363,7 @@ class TestInteractiveVisualization:
         )
         
         # Mock the actual visualization to avoid py3Dmol dependency
-        from src.olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
+        from olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
         
         with patch('src.olfactory_modeling.data.graph_viz.visualize_molecule_3d_interactive', return_value=True):
             output_path = visualize_molecule_interactive(
@@ -395,7 +395,7 @@ class TestInteractiveVisualization:
             name=np.array(['Ethanol'])
         )
         
-        from src.olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
+        from olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
         
         with patch('src.olfactory_modeling.data.graph_viz.visualize_molecule_3d_interactive', return_value=True):
             visualize_molecule_interactive(180, data_dir='data/01_raw', open_browser=False)
@@ -409,7 +409,7 @@ class TestEdgeCases:
     
     def test_empty_graph_data(self):
         """Test behavior with empty graph data."""
-        from src.olfactory_modeling.data.molecular_graphs import get_graph_by_cid
+        from olfactory_modeling.data.molecular_graphs import get_graph_by_cid
         
         empty_data = {
             'cids': np.array([]),
@@ -425,7 +425,7 @@ class TestEdgeCases:
     
     def test_missing_npz_file(self, tmp_path):
         """Test handling of missing NPZ file."""
-        from src.olfactory_modeling.data.molecular_graphs import load_graph_by_cid
+        from olfactory_modeling.data.molecular_graphs import load_graph_by_cid
         
         with pytest.raises(FileNotFoundError):
             load_graph_by_cid(180, data_dir=str(tmp_path))

@@ -1,4 +1,4 @@
-"""Centralized logging configuration for the neuro_foundation package.
+"""Centralized logging configuration for the olfactory_modeling package.
 
 Provides consistent logging across all modules with file and console output,
 proper formatting, and configurable log levels.

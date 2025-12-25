@@ -140,7 +140,7 @@ pytest tests/
 
 ### Run with Coverage
 ```bash
-pytest tests/ --cov=src/neuro_foundation --cov-report=term-missing
+pytest tests/ --cov=src/olfactory_modeling --cov-report=term-missing
 ```
 
 ### Run Specific Test File
@@ -343,7 +343,7 @@ def test_something(mock_activity_maps_data):
 
 ### Before Committing
 - [ ] All tests pass: `pytest tests/`
-- [ ] Coverage maintained: `pytest tests/ --cov=src/neuro_foundation`
+- [ ] Coverage maintained: `pytest tests/ --cov=src/olfactory_modeling`
 - [ ] No new warnings
 - [ ] Code formatted with black (if using)
 - [ ] Type hints added for new functions

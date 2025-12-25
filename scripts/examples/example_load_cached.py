@@ -11,7 +11,7 @@ from pathlib import Path
 # Add project root to path (go up 2 levels from scripts/examples/)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.olfactory_modeling.data.pyrfume_loader import (
+from olfactory_modeling.data.pyrfume_loader import (
     load_molecules_csv,
     load_molecules_npz,
     load_behavior_csv,
@@ -99,7 +99,7 @@ def usage_examples():
     print(f"  Average coverage: {(maps > 0).mean(axis=(1,2)).mean():.1%} of pixels active")
     
     # Load activity maps by CID
-    from src.olfactory_modeling.data.pyrfume_loader import (
+    from olfactory_modeling.data.pyrfume_loader import (
         load_activity_maps_by_cid,
         load_activity_map_by_cid_averaged
     )

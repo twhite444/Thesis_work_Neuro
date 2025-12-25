@@ -2,9 +2,9 @@ import pandas as pd
 import json
 import pytest
 
-from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
-from src.olfactory_modeling.pipeline.feature_select import select_features
-from src.olfactory_modeling.pipeline.train_linear import train_linear_regression
+from olfactory_modeling.pipeline.preprocess import featurize_and_standardize
+from olfactory_modeling.pipeline.feature_select import select_features
+from olfactory_modeling.pipeline.train_linear import train_linear_regression
 
 
 @pytest.mark.integration

@@ -1,4 +1,4 @@
-"""Utility modules for the neuro_foundation package."""
+"""Utility modules for the olfactory_modeling package."""
 
 from .profiling import Timer, EpochTimer, profile_dataloader, compare_device_performance
 from .metrics import (

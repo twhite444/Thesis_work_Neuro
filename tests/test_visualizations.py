@@ -7,10 +7,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import torch
 import numpy as np
-from src.olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
-from src.olfactory_modeling.models.baseline_nn import get_model
-from src.olfactory_modeling.pipeline.train_nn import train_nn, train_nn_kfold, grid_search
-from src.olfactory_modeling.visualization import (
+from olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
+from olfactory_modeling.models.baseline_nn import get_model
+from olfactory_modeling.pipeline.train_nn import train_nn, train_nn_kfold, grid_search
+from olfactory_modeling.visualization import (
     plot_training_curves,
     plot_cv_results,
     plot_grid_search_results,
@@ -149,7 +149,7 @@ print("   ✓ CV analysis plot saved")
 # Test 3: Grid search with visualization
 print("\n6. Testing grid search with visualizations...")
 
-from src.olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
+from olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
 
 def model_factory_template(dropout=0.35):
     return MoleculeToActivityMapMLP(

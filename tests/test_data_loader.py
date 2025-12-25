@@ -1,7 +1,7 @@
 import pandas as pd
 import types
 import pytest
-from src.olfactory_modeling.data.pyrfume_loader import PyrfumeLoader
+from olfactory_modeling.data.pyrfume_loader import PyrfumeLoader
 
 
 @pytest.mark.unit

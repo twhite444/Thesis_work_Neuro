@@ -24,7 +24,7 @@ import torch
 
 from olfactory_modeling.data.activity_map_dataset import get_dataloaders
 from olfactory_modeling.models.baseline_nn import get_model
-from src.olfactory_modeling.utils.profiling import (
+from olfactory_modeling.utils.profiling import (
     Timer, 
     EpochTimer, 
     profile_dataloader,

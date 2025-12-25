@@ -29,8 +29,8 @@ python scripts/run_pca_on_maps.py --n_components 20
 ### 2. Train on PCA Components
 
 ```python
-from neuro_foundation.data.activity_map_dataset import get_dataloaders
-from neuro_foundation.models.baseline_nn import get_model
+from olfactory_modeling.data.activity_map_dataset import get_dataloaders
+from olfactory_modeling.models.baseline_nn import get_model
 
 # Load PCA-transformed maps
 train_loader, val_loader, test_loader = get_dataloaders(
@@ -45,7 +45,7 @@ model = get_model(
 )
 
 # Train as usual
-from neuro_foundation.pipeline.train_nn import train_nn
+from olfactory_modeling.pipeline.train_nn import train_nn
 results = train_nn(model, train_loader, val_loader, output_dir="experiments/pca")
 ```
 
@@ -58,7 +58,7 @@ results = train_nn(model, train_loader, val_loader, output_dir="experiments/pca"
 Fit PCA on activity maps and transform them.
 
 ```python
-from neuro_foundation.pipeline.pca_transform import fit_pca_on_maps
+from olfactory_modeling.pipeline.pca_transform import fit_pca_on_maps
 
 pca_model, pca_maps, metadata = fit_pca_on_maps(
     maps=activity_maps,        # (n_samples, 79, 43)
@@ -86,7 +86,7 @@ pca_model, pca_maps, metadata = fit_pca_on_maps(
 Transform new maps using a pre-fitted PCA model.
 
 ```python
-from neuro_foundation.pipeline.pca_transform import transform_maps_with_pca
+from olfactory_modeling.pipeline.pca_transform import transform_maps_with_pca
 
 # Transform test/validation maps
 pca_test_maps = transform_maps_with_pca(
@@ -100,7 +100,7 @@ pca_test_maps = transform_maps_with_pca(
 Load pre-computed PCA-transformed maps.
 
 ```python
-from neuro_foundation.pipeline.pca_transform import load_pca_transformed_maps
+from olfactory_modeling.pipeline.pca_transform import load_pca_transformed_maps
 
 pca_maps, cids, metadata = load_pca_transformed_maps('data/02_processed')
 ```
@@ -110,7 +110,7 @@ pca_maps, cids, metadata = load_pca_transformed_maps('data/02_processed')
 The `MoleculeActivityMapDataset` supports PCA targets via the `use_pca` parameter:
 
 ```python
-from neuro_foundation.data.activity_map_dataset import MoleculeActivityMapDataset
+from olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
 
 # Raw maps (default)
 dataset_raw = MoleculeActivityMapDataset(use_pca=False)
@@ -128,7 +128,7 @@ dataset_pca = MoleculeActivityMapDataset(use_pca=True)
 Optimized MLP for predicting PCA components.
 
 ```python
-from neuro_foundation.models.baseline_nn import MoleculeToPCAMLP
+from olfactory_modeling.models.baseline_nn import MoleculeToPCAMLP
 
 model = MoleculeToPCAMLP(
     input_dim=268,
@@ -169,8 +169,8 @@ python examples/train_on_pca_maps.py
 
 ```python
 import time
-from neuro_foundation.data.activity_map_dataset import get_dataloaders
-from neuro_foundation.models.baseline_nn import get_model
+from olfactory_modeling.data.activity_map_dataset import get_dataloaders
+from olfactory_modeling.models.baseline_nn import get_model
 
 # Raw maps
 train_raw, val_raw, _ = get_dataloaders(use_pca=False, batch_size=32)
@@ -190,7 +190,7 @@ print(f"PCA model params: {sum(p.numel() for p in model_pca.parameters()):,}")
 ### Choosing Number of Components
 
 ```python
-from neuro_foundation.pipeline.pca_transform import fit_pca_on_maps
+from olfactory_modeling.pipeline.pca_transform import fit_pca_on_maps
 
 # Try different numbers of components
 for n_comp in [5, 10, 20, 50]:

@@ -79,7 +79,7 @@ def main(output_dir: str, skip_activity_maps: bool = False):
         print(f"  - activity_maps.npz: {len(activity_maps)} maps")
         print(f"  - activity_maps_csv/: {len(activity_maps)} individual CSV files")
     print("\nFiles can be loaded using:")
-    print("  from src.olfactory_modeling.data.pyrfume_loader import (")
+    print("  from olfactory_modeling.data.pyrfume_loader import (")
     print("      load_molecules_csv, load_mordred_features_npz,")
     print("      load_behavior_csv, load_stimuli_csv, load_activity_maps_npz")
     print("  )")

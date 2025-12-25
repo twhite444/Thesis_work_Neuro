@@ -1,4 +1,4 @@
-"""Centralized configuration management for neuro_foundation.
+"""Centralized configuration management for olfactory_modeling.
 
 Provides typed configuration classes using dataclasses with sensible defaults,
 environment variable overrides, and validation.

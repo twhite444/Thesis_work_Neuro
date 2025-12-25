@@ -267,7 +267,7 @@ pytest -m integration    # Integration tests only
 pytest -m slow          # Slow tests only
 
 # Run with coverage
-pytest --cov=src/neuro_foundation --cov-report=html
+pytest --cov=src/olfactory_modeling --cov-report=html
 
 # Run specific test file
 pytest tests/test_preprocess.py -v
@@ -309,8 +309,8 @@ See [docs/VISUALIZATION_GUIDE.md](docs/VISUALIZATION_GUIDE.md) for examples.
 
 ### Classical ML Workflow
 ```python
-from src.olfactory_modeling.data.pyrfume_loader import PyrfumeLoader, load_molecules_npz
-from src.olfactory_modeling.pipeline.preprocess import featurize_smiles_batch
+from olfactory_modeling.data.pyrfume_loader import PyrfumeLoader, load_molecules_npz
+from olfactory_modeling.pipeline.preprocess import featurize_smiles_batch
 
 # Load data
 loader = PyrfumeLoader(output_dir='data/01_raw')
@@ -327,7 +327,7 @@ features_df = featurize_smiles_batch(
 
 ### Graph-Based Workflow
 ```python
-from src.olfactory_modeling.data.molecular_graphs import load_graph_data, get_graph_by_cid
+from olfactory_modeling.data.molecular_graphs import load_graph_data, get_graph_by_cid
 
 # Load pre-generated graphs
 graph_data = load_graph_data('data/01_raw')
@@ -344,7 +344,7 @@ print(f"Edge features shape: {graph['edge_attr'].shape}")
 
 ### Activity Map Analysis
 ```python
-from src.olfactory_modeling.pipeline.activity_maps import pipeline_load_and_mask
+from olfactory_modeling.pipeline.activity_maps import pipeline_load_and_mask
 
 # Process activity maps for molecules
 results = pipeline_load_and_mask(

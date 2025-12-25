@@ -97,9 +97,9 @@ Examples:
                        help="Don't use cached molecules, download fresh data (same as --force-download)")
     
     # Feature selection and filtering arguments
-    parser.add_argument("--variance-threshold", type=float, default=0.0,
-                       help="Variance threshold for feature selection (default: 0.0 = remove only constants). "
-                            "Applied BEFORE standardization. Try 0.01 or 0.1 to remove low-variance features.")
+    parser.add_argument("--variance-threshold", type=float, default=0.1,
+                       help="Variance threshold for feature selection (default: 0.1 = remove low-variance features). "
+                            "Applied BEFORE standardization. Try 0.0 to keep all features or 0.01 to remove minimal low-variance features.")
     parser.add_argument("--no-drop-nan", action="store_true",
                        help="Don't drop columns with NaN values (default: drop NaN)")
     parser.add_argument("--no-drop-zero", action="store_true",

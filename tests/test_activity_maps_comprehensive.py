@@ -11,7 +11,7 @@ Tests cover:
 import pytest
 import pandas as pd
 import numpy as np
-from src.olfactory_modeling.pipeline.activity_maps import (
+from olfactory_modeling.pipeline.activity_maps import (
     ActivityMapRecord,
     load_directory_csv,
     load_activity_maps,

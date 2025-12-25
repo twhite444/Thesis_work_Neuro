@@ -45,7 +45,7 @@ class PyrfumeLoader:
 
 **Usage Example:**
 ```python
-from src.olfactory_modeling.data.pyrfume_loader import PyrfumeLoader
+from olfactory_modeling.data.pyrfume_loader import PyrfumeLoader
 
 # Initialize loader
 loader = PyrfumeLoader(output_dir='data/01_raw')
@@ -195,8 +195,8 @@ def featurize_and_standardize(
         4. Save as cleaned_data.csv
         
     Example:
-        from src.olfactory_modeling.data.pyrfume_loader import load_molecules_npz
-        from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
+        from olfactory_modeling.data.pyrfume_loader import load_molecules_npz
+        from olfactory_modeling.pipeline.preprocess import featurize_and_standardize
         
         molecules = load_molecules_npz()
         features = featurize_and_standardize(molecules)
@@ -589,7 +589,7 @@ Values: Standardized (mean=0, std=1)
 
 ### Pattern 1: Fast Data Loading
 ```python
-from src.olfactory_modeling.data.pyrfume_loader import (
+from olfactory_modeling.data.pyrfume_loader import (
     load_molecules_npz,
     load_behavior_npz,
     load_activity_maps_by_cid
@@ -605,9 +605,9 @@ maps = load_activity_maps_by_cid(180)  # acetone
 
 ### Pattern 2: Feature Pipeline
 ```python
-from src.olfactory_modeling.data.pyrfume_loader import load_molecules_npz
-from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
-from src.olfactory_modeling.pipeline.feature_select import select_features
+from olfactory_modeling.data.pyrfume_loader import load_molecules_npz
+from olfactory_modeling.pipeline.preprocess import featurize_and_standardize
+from olfactory_modeling.pipeline.feature_select import select_features
 
 # Load data
 molecules = load_molecules_npz()
@@ -621,7 +621,7 @@ selected = select_features(features, threshold=1.0)
 
 ### Pattern 3: Activity Map Analysis
 ```python
-from src.olfactory_modeling.pipeline.activity_maps import pipeline_load_and_mask
+from olfactory_modeling.pipeline.activity_maps import pipeline_load_and_mask
 
 # Complete pipeline
 maps, cids, mask = pipeline_load_and_mask(
@@ -636,7 +636,7 @@ print(f"Mask covers {mask.sum()} brain pixels")
 
 ### Pattern 4: CID-based Analysis
 ```python
-from src.olfactory_modeling.data.pyrfume_loader import (
+from olfactory_modeling.data.pyrfume_loader import (
     load_molecules_npz,
     load_activity_maps_by_cid,
     load_activity_map_by_cid_averaged

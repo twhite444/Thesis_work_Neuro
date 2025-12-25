@@ -282,7 +282,7 @@ export NEURO_LOG_LEVEL=INFO
 export NEURO_DATA_DIR=/scratch/data
 
 # Run training
-python -m neuro_foundation.pipeline.train_nn \\
+python -m olfactory_modeling.pipeline.train_nn \\
     --config-env \\
     --output-dir results/run_$SLURM_JOB_ID
 

@@ -1,4 +1,4 @@
-"""Data loading and interfaces for neuro_foundation.
+"""Data loading and interfaces for olfactory_modeling.
 
 Provides loaders for Pyrfume datasets including molecules, behavior data,
 and activity maps with efficient caching and multiple formats.

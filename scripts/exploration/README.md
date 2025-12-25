@@ -78,7 +78,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.neuro_foundation.data.pyrfume_loader import ...
+from src.olfactory_modeling.data.pyrfume_loader import ...
 
 # Your exploration code here
 ```

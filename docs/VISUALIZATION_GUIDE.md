@@ -110,7 +110,7 @@ visualize_molecule_interactive(439250, style='cross')
 
 ### Quick visualization
 ```python
-from src.olfactory_modeling.data.molecular_graphs import load_graph_by_cid
+from olfactory_modeling.data.molecular_graphs import load_graph_by_cid
 
 # Show vanillin in 3D PyMOL quality
 load_graph_by_cid(1183, mode='simple', projection='3d')
@@ -125,7 +125,7 @@ load_graph_by_cid(440917, show_image=False, save_image=True,
 
 ### Interactive browser viewer
 ```python
-from src.olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
+from olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
 
 # Open interactive 3D viewer in browser
 visualize_molecule_interactive(1183, style='sphere')
