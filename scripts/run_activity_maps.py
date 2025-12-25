@@ -55,6 +55,12 @@ Examples:
   # Median selection (robust to outliers)
   python scripts/run_activity_maps.py --strategy median
   
+  # Keep only positive values inside ROI
+  python scripts/run_activity_maps.py --value-policy pos
+  
+  # Preserve NaNs for analysis (don't convert to zeros)
+  python scripts/run_activity_maps.py --nan-policy keep
+  
   # Quick test without visualizations
   python scripts/run_activity_maps.py --strategy first --no-visualizations
         """
@@ -85,6 +91,16 @@ Examples:
                        default=100,
                        help='Minimum connected region size in pixels (default: 100)')
     
+    # Value processing parameters
+    parser.add_argument('--nan-policy', type=str,
+                       default='to_zero',
+                       choices=['to_zero', 'keep'],
+                       help='How to handle NaNs at end: "to_zero" or "keep" (default: to_zero)')
+    parser.add_argument('--value-policy', type=str,
+                       default='all',
+                       choices=['all', 'pos', 'neg'],
+                       help='Value filtering inside ROI: "all", "pos", or "neg" (default: all)')
+    
     # Options
     parser.add_argument('--no-visualizations', action='store_true',
                        help='Skip generating visualization plots')
@@ -105,6 +121,8 @@ Examples:
         selection_strategy=SelectionStrategy(args.strategy),
         coverage_threshold=args.coverage_threshold,
         min_region_size=args.min_region_size,
+        nan_policy=args.nan_policy,
+        value_policy=args.value_policy,
         save_visualizations=not args.no_visualizations,
         verbose=args.verbose,
     )
@@ -116,11 +134,14 @@ Examples:
     print(f"Molecules processed: {results['n_molecules']}")
     print(f"Selection strategy:  {results['selection_strategy']}")
     print(f"Coverage threshold:  {results['coverage_threshold']}")
+    print(f"NaN policy:         {results['nan_policy']}")
+    print(f"Value policy:       {results['value_policy']}")
     print(f"Mask coverage:       {results['mask_coverage']:.2%}")
     print("="*80)
     print(f"\nOutputs saved to: {args.output_dir}/")
     print(f"  - processed_maps.npz (maps and CIDs)")
     print(f"  - processed_maps_metadata.csv (metadata)")
+    print(f"  - map_statistics.json (QC statistics)")
     print(f"  - global_mask.npy (reusable mask)")
     if not args.no_visualizations:
         print(f"  - visualizations (PNG files)")
