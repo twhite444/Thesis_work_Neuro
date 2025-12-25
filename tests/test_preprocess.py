@@ -16,7 +16,6 @@ def test_featurize_and_standardize_smiles_column_missing(tmp_path):
 @pytest.mark.unit
 def test_featurize_and_standardize_runs(tmp_path, monkeypatch):
     # Provide small synthetic SMILES and monkeypatch mordred function to avoid heavy compute
-    import src.neuro_foundation.pipeline.preprocess as pp
     def fake_smiles_to_mordred(smiles):
         # return deterministic small feature frame
         return pd.DataFrame({
@@ -24,9 +23,11 @@ def test_featurize_and_standardize_runs(tmp_path, monkeypatch):
             'f2': [0.0, 0.0],  # zero-only should be dropped
             'f3': [3.0, 4.0],
         })
-    monkeypatch.setattr(pp, 'smiles_to_mordred', fake_smiles_to_mordred)
+    # Mock the pyrfume import inside the function
+    import pyrfume.features
+    monkeypatch.setattr(pyrfume.features, 'smiles_to_mordred', fake_smiles_to_mordred)
 
-    df = pd.DataFrame({'IsomericSMILES': ['CCO', 'CCN']})
+    df = pd.DataFrame({'IsomericSMILES': ['CCO', 'CCN'], 'CID': [1, 2]})
     out = featurize_and_standardize(df, output_dir=str(tmp_path))
     # f2 is zero-only; expect 2 features remain
     assert out.shape == (2, 2)
