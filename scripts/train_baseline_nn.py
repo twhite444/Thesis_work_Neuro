@@ -34,8 +34,8 @@ def main():
     parser = argparse.ArgumentParser(description="Train baseline neural network for activity map prediction")
     
     # Model arguments
-    parser.add_argument('--model', type=str, required=True, choices=['mlp', 'cnn'],
-                        help='Model architecture (mlp or cnn)')
+    parser.add_argument('--model', type=str, default='mlp', choices=['mlp', 'cnn'],
+                        help='Model architecture (mlp or cnn), default: mlp')
     
     # Training arguments  
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
@@ -49,14 +49,12 @@ def main():
                         help='Weight decay (L2 regularization, default: 1e-5). Set to 0 for no regularization, try 1e-4 for stronger effect.')
     parser.add_argument('--dropout', type=float, default=0.35,
                         help='Dropout rate (default: 0.35, from reference paper)')
-    parser.add_argument('--early-stopping', type=int, default=0,
-                        help='Early stopping patience (0 = disabled, try 15-20 for long runs)')
+    parser.add_argument('--early-stopping', type=int, default=15,
+                        help='Early stopping patience (0 = disabled, try 15-20 for long runs), default: 15')
     
     # Data arguments
     parser.add_argument('--use-pca', action='store_true',
                         help='Use PCA-transformed maps as targets (faster training, ~170x smaller)')
-    parser.add_argument('--n-components', type=int, default=20,
-                        help='Number of PCA components (default: 20, only used with --use-pca)')
     parser.add_argument('--random-seed', type=int, default=42,
                         help='Random seed for reproducible splits (K-fold or train/val/test)')
     parser.add_argument('--processed-dir', type=str, default='data/02_processed', 
