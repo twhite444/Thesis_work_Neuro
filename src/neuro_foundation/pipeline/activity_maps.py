@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import json
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Tuple, Dict, Optional
@@ -67,43 +68,161 @@ def load_activity_maps(directory_df: pd.DataFrame, data_dir: str = 'data/01_raw'
             
         # Load CSV and convert to numpy array
         map_df = pd.read_csv(map_path, index_col=0)
-        arr = np.nan_to_num(map_df.to_numpy(), nan=0)
+        arr = map_df.to_numpy()
         records.append(ActivityMapRecord(cid=int(row['CID']), map=arr))
     
     print()
     return records
 
 
-def compute_global_mask(records: List[ActivityMapRecord], coverage_threshold: float) -> np.ndarray:
+def compute_global_mask(records: List[ActivityMapRecord], coverage_threshold: float, min_region_size: int = 100) -> np.ndarray:
     """Compute a global mask based on coverage across maps.
-    coverage_threshold in [0,1] indicates fraction of maps that must have non-zero values.
-    Note: Since NaNs are converted to 0 during loading, we count non-zero pixels.
+    coverage_threshold in [0,1] indicates fraction of maps that must have finite values.
+    Coverage is defined as pixel existence (np.isfinite).
     """
     if not records:
         raise ValueError("No activity maps provided")
     shape = records[0].map.shape
     valid_counts = np.zeros(shape, dtype=int)
     for r in records:
-        valid_counts += (r.map != 0)  # Count non-zero pixels, not non-NaN
-    required = int(coverage_threshold * len(records))
+        valid_counts += np.isfinite(r.map).astype(int)  # Count finite pixels
+    required = math.ceil(coverage_threshold * len(records))
     global_mask = valid_counts >= max(required, 1)
     refined = binary_erosion(binary_dilation(global_mask))
-    # Keep sufficiently large regions (>=100 pixels) similar to legacy
+    # Keep sufficiently large regions
     labeled_mask, _ = label(refined)
     counts = np.bincount(labeled_mask.ravel())
-    valid_regions = np.isin(labeled_mask, np.where(counts >= 100)[0])
+    valid_regions = np.isin(labeled_mask, np.where(counts >= min_region_size)[0])
     refined &= valid_regions
     return refined
 
 
 def apply_mask(records: List[ActivityMapRecord], mask: np.ndarray) -> List[ActivityMapRecord]:
-    """Apply global mask to each map and return masked records."""
+    """Apply global mask to each map and return masked records.
+    Pixels outside the mask become NaN, pixels inside keep original values.
+    """
     masked_records: List[ActivityMapRecord] = []
     for r in records:
-        arr = np.nan_to_num(r.map, nan=0.0)
-        masked = arr * mask
+        masked = np.where(mask, r.map, np.nan)
         masked_records.append(ActivityMapRecord(cid=r.cid, map=masked))
     return masked_records
+
+
+def apply_value_policy(map_arr: np.ndarray, mask: np.ndarray, value_policy: str) -> np.ndarray:
+    """Apply value filtering policy inside the ROI only.
+    
+    Args:
+        map_arr: Activity map array
+        mask: Boolean ROI mask
+        value_policy: "all", "pos", or "neg"
+        
+    Returns:
+        Array with policy applied inside ROI, dropped values set to 0
+    """
+    result = map_arr.copy()
+    if value_policy == "all":
+        pass  # Keep all values
+    elif value_policy == "pos":
+        # Keep only >0 inside ROI, set others to 0
+        inside_roi = mask
+        result[inside_roi & (result <= 0)] = 0.0
+    elif value_policy == "neg":
+        # Keep only <0 inside ROI, set others to 0
+        inside_roi = mask
+        result[inside_roi & (result >= 0)] = 0.0
+    else:
+        raise ValueError(f"Unknown value_policy: {value_policy}")
+    return result
+
+
+def mask_for_display(arr: np.ndarray, mask: np.ndarray, hide_zeros_inside_roi: bool = False) -> np.ndarray:
+    """Prepare array for visualization with proper masking.
+    
+    Args:
+        arr: Activity map array
+        mask: Boolean ROI mask
+        hide_zeros_inside_roi: If True, set zeros inside ROI to NaN for readability
+        
+    Returns:
+        Array suitable for visualization (outside ROI = NaN)
+    """
+    display_arr = arr.copy()
+    # Outside ROI always NaN
+    display_arr[~mask] = np.nan
+    # Optionally hide zeros inside ROI
+    if hide_zeros_inside_roi:
+        display_arr[mask & (display_arr == 0)] = np.nan
+    return display_arr
+
+
+def compute_map_stats(map_arr: np.ndarray, mask: np.ndarray) -> Dict[str, float]:
+    """Compute robust statistics for a single activity map inside ROI.
+    
+    Args:
+        map_arr: Activity map array
+        mask: Boolean ROI mask
+        
+    Returns:
+        Dictionary with statistics
+    """
+    roi_pixels = map_arr[mask]
+    roi_finite_mask = np.isfinite(roi_pixels)
+    roi_finite = roi_pixels[roi_finite_mask]
+    
+    stats = {
+        'roi_total_pixels': mask.sum(),
+        'roi_finite_pixels': len(roi_finite),
+        'roi_finite_fraction': len(roi_finite) / mask.sum() if mask.sum() > 0 else 0.0,
+    }
+    
+    if len(roi_finite) > 0:
+        stats.update({
+            'roi_min': float(roi_finite.min()),
+            'roi_max': float(roi_finite.max()),
+            'roi_mean': float(roi_finite.mean()),
+            'roi_std': float(roi_finite.std()),
+        })
+        
+        # Positive values
+        pos_mask = roi_finite > 0
+        pos_vals = roi_finite[pos_mask]
+        stats['n_pos_pixels'] = len(pos_vals)
+        stats['pos_frac_in_roi'] = len(pos_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0
+        if len(pos_vals) > 0:
+            stats.update({
+                'pos_min': float(pos_vals.min()),
+                'pos_max': float(pos_vals.max()),
+                'pos_mean': float(pos_vals.mean()),
+                'pos_std': float(pos_vals.std()),
+            })
+        
+        # Negative values
+        neg_mask = roi_finite < 0
+        neg_vals = roi_finite[neg_mask]
+        stats['n_neg_pixels'] = len(neg_vals)
+        stats['neg_frac_in_roi'] = len(neg_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0
+        if len(neg_vals) > 0:
+            stats.update({
+                'neg_min': float(neg_vals.min()),
+                'neg_max': float(neg_vals.max()),
+                'neg_mean': float(neg_vals.mean()),
+                'neg_std': float(neg_vals.std()),
+            })
+        
+        # Nonzero values
+        nonzero_mask = roi_finite != 0
+        nonzero_vals = roi_finite[nonzero_mask]
+        stats['n_nonzero_pixels'] = len(nonzero_vals)
+        stats['nonzero_frac_in_roi'] = len(nonzero_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0
+        if len(nonzero_vals) > 0:
+            stats.update({
+                'nonzero_min': float(nonzero_vals.min()),
+                'nonzero_max': float(nonzero_vals.max()),
+                'nonzero_mean': float(nonzero_vals.mean()),
+                'nonzero_std': float(nonzero_vals.std()),
+            })
+    
+    return stats
 
 
 def average_by_cid(records: List[ActivityMapRecord]) -> Tuple[List[np.ndarray], List[int]]:
@@ -356,10 +475,14 @@ def select_maps_by_strategy(
         raise ValueError(f"Unknown strategy: {strategy}")
 
 
-def visualize_map(arr: np.ndarray, title: str, output_path: str, cmap: str = 'viridis') -> None:
+def visualize_map(arr: np.ndarray, title: str, output_path: str, cmap: str = 'viridis', mask: Optional[np.ndarray] = None, hide_zeros_inside_roi: bool = False) -> None:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.figure(figsize=(8, 6))
-    plt.imshow(arr, cmap=cmap)
+    if mask is not None:
+        display_arr = mask_for_display(arr, mask, hide_zeros_inside_roi)
+    else:
+        display_arr = arr
+    plt.imshow(display_arr, cmap=cmap)
     plt.title(title)
     plt.axis('off')
     plt.tight_layout()
@@ -426,7 +549,7 @@ def compute_and_save_global_mask(
         Binary mask array (79, 43)
     """
     # Compute mask using existing function
-    mask = compute_global_mask(records, coverage_threshold)
+    mask = compute_global_mask(records, coverage_threshold, min_region_size)
     
     # Save mask
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -563,7 +686,8 @@ def visualize_processing_results(
         visualize_map(
             maps[0],
             title=f'Processed Map CID={cids[0]}',
-            output_path=os.path.join(output_dir, 'processed_map_example.png')
+            output_path=os.path.join(output_dir, 'processed_map_example.png'),
+            mask=mask
         )
         
         # Gallery of up to 6 maps
@@ -575,7 +699,8 @@ def visualize_processing_results(
         
         for i in range(n):
             ax = axes[i]
-            ax.imshow(maps[i], cmap='viridis')
+            display_arr = mask_for_display(maps[i], mask)
+            ax.imshow(display_arr, cmap='viridis')
             ax.set_title(f'CID={cids[i]}')
             ax.axis('off')
         
@@ -599,6 +724,8 @@ def process_activity_maps(
     selection_strategy: SelectionStrategy = SelectionStrategy.BEST_QUALITY,
     coverage_threshold: float = 0.5,
     min_region_size: int = 100,
+    nan_policy: str = "to_zero",
+    value_policy: str = "all",
     save_visualizations: bool = True,
     verbose: bool = False,
 ) -> Dict[str, any]:
@@ -609,8 +736,10 @@ def process_activity_maps(
     2. Compute global mask based on coverage threshold
     3. Apply global mask to all maps
     4. Select one map per CID using specified strategy
-    5. Save processed maps and metadata
-    6. Generate visualizations (optional)
+    5. Apply value policy and NaN policy
+    6. Compute QC statistics
+    7. Save processed maps and metadata
+    8. Generate visualizations (optional)
     
     Args:
         directory_csv: Path to behavior CSV
@@ -619,6 +748,8 @@ def process_activity_maps(
         selection_strategy: Which selection method to use
         coverage_threshold: Fraction for global mask (0.0-1.0)
         min_region_size: Min pixels in connected regions
+        nan_policy: "to_zero" or "keep" - how to handle NaNs at end
+        value_policy: "all", "pos", or "neg" - value filtering inside ROI
         save_visualizations: Whether to generate plots
         verbose: Print detailed info
         
@@ -656,7 +787,7 @@ def process_activity_maps(
     print(f"      ✓ Applied mask to {len(masked_records)} maps")
     
     # Step 4: Select maps by strategy
-    print(f"\n[4/6] Selecting maps using strategy: {selection_strategy.value}...")
+    print(f"\n[4/8] Selecting maps using strategy: {selection_strategy.value}...")
     selected_maps, cids, selection_metadata = select_maps_by_strategy(
         masked_records,
         strategy=selection_strategy
@@ -666,42 +797,86 @@ def process_activity_maps(
         print(f"        - Single map CIDs: {selection_metadata['n_single_map']}")
         print(f"        - Multi map CIDs: {selection_metadata['n_multi_map']}")
     
-    # Step 5: Save processed maps
-    print(f"\n[5/6] Saving processed maps to {output_dir}...")
+    # Step 5: Apply value policy
+    print(f"\n[5/8] Applying value policy: {value_policy}...")
+    processed_maps = []
+    for map_arr in selected_maps:
+        processed_maps.append(apply_value_policy(map_arr, mask, value_policy))
+    print(f"      ✓ Applied value policy to {len(processed_maps)} maps")
+    
+    # Step 6: Apply NaN policy
+    print(f"\n[6/8] Applying NaN policy: {nan_policy}...")
+    if nan_policy == "to_zero":
+        final_maps = []
+        for map_arr in processed_maps:
+            final_maps.append(np.nan_to_num(map_arr, nan=0.0))
+        print(f"      ✓ Converted NaNs to zeros in {len(final_maps)} maps")
+    elif nan_policy == "keep":
+        final_maps = processed_maps
+        print(f"      ✓ Kept NaNs intact in {len(final_maps)} maps")
+    else:
+        raise ValueError(f"Unknown nan_policy: {nan_policy}")
+    
+    # Step 7: Compute QC statistics
+    print(f"\n[7/8] Computing QC statistics...")
+    all_stats = []
+    for map_arr in processed_maps:  # Use processed_maps before nan_policy for stats
+        stats = compute_map_stats(map_arr, mask)
+        all_stats.append(stats)
+    
+    # Save stats to JSON
+    stats_path = os.path.join(output_dir, 'map_statistics.json')
+    with open(stats_path, 'w') as f:
+        json.dump({
+            'cids': cids,
+            'statistics': all_stats,
+            'summary': {
+                'n_maps': len(all_stats),
+                'value_policy': value_policy,
+                'nan_policy': nan_policy,
+            }
+        }, f, indent=2)
+    print(f"      ✓ Computed and saved statistics for {len(all_stats)} maps")
+    
+    # Step 8: Save processed maps
+    print(f"\n[8/8] Saving processed maps to {output_dir}...")
     save_processed_maps(
-        maps=selected_maps,
+        maps=final_maps,
         cids=cids,
         output_dir=output_dir,
         metadata={
             'selection_strategy': selection_strategy.value,
             'coverage_threshold': coverage_threshold,
-            'n_maps': len(selected_maps),
+            'min_region_size': min_region_size,
+            'nan_policy': nan_policy,
+            'value_policy': value_policy,
+            'n_maps': len(final_maps),
             'mask_active_pixels': int(mask.sum()),
             'mask_coverage_fraction': float(mask_coverage),
         }
     )
-    
-    # Step 6: Visualizations
     if save_visualizations:
-        print(f"\n[6/6] Generating visualizations...")
+        print(f"\n[9/9] Generating visualizations...")
         visualize_processing_results(
-            maps=selected_maps,
+            maps=final_maps,
             cids=cids,
             mask=mask,
             output_dir=output_dir
         )
         print(f"      ✓ Saved visualizations to {output_dir}")
     else:
-        print(f"\n[6/6] Skipping visualizations")
+        print(f"\n[9/9] Skipping visualizations")
     
     print("\n" + "="*80)
     print("✓ PROCESSING COMPLETE")
     print("="*80)
     
     return {
-        'n_molecules': len(selected_maps),
+        'n_molecules': len(final_maps),
         'selection_strategy': selection_strategy.value,
         'coverage_threshold': coverage_threshold,
+        'nan_policy': nan_policy,
+        'value_policy': value_policy,
         'mask_coverage': float(mask_coverage),
     }
 
@@ -729,11 +904,11 @@ def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', co
         print(df.head())
     records = load_activity_maps(df, data_dir=data_dir)
     # coverage visualization (before mask)
-    # Count how many maps have non-zero values at each pixel (since we convert NaN to 0 in loading)
+    # Count how many maps have finite values at each pixel
     shape = records[0].map.shape if records else (0, 0)
     valid_counts = np.zeros(shape, dtype=int)
     for r in records:
-        valid_counts += (r.map != 0)  # Count non-zero pixels, not non-NaN
+        valid_counts += np.isfinite(r.map).astype(int)  # Count finite pixels
     visualize_coverage(valid_counts, os.path.join(output_dir, 'coverage_counts.png'))
     visualize_coverage_histogram(valid_counts, os.path.join(output_dir, 'coverage_histogram.png'))
 
@@ -745,7 +920,7 @@ def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', co
     # Save example masked maps and a small gallery if available
     if averaged_maps:
         visualize_map(averaged_maps[0], title=f'Masked Averaged Map CID={cids[0]}',
-                      output_path=os.path.join(output_dir, 'masked_averaged_example.png'))
+                      output_path=os.path.join(output_dir, 'masked_averaged_example.png'), mask=mask)
         # Gallery of up to 6 averaged maps
         n = min(len(averaged_maps), 6)
         cols = 3
@@ -754,7 +929,8 @@ def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', co
         axes = np.array(axes).reshape(-1)
         for i in range(n):
             ax = axes[i]
-            ax.imshow(averaged_maps[i], cmap='viridis')
+            display_arr = mask_for_display(averaged_maps[i], mask)
+            ax.imshow(display_arr, cmap='viridis')
             ax.set_title(f'CID={cids[i]}')
             ax.axis('off')
         # Hide unused axes
