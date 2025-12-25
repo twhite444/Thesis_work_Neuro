@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 import pandas as pd
 
-from neuro_foundation.pipeline.feature_select import select_features
+from olfactory_modeling.pipeline.feature_select import select_features
 
 
 def main(input_csv: str, threshold: float, output_dir: str):

@@ -295,6 +295,6 @@ print(metadata['cumulative_variance'])  # See variance curve
 ## References
 
 - Original PCA implementation: `legacy/pca_copy.py`
-- Activity map processing: `src/neuro_foundation/pipeline/activity_maps.py`
-- Dataset class: `src/neuro_foundation/data/activity_map_dataset.py`
-- Models: `src/neuro_foundation/models/baseline_nn.py`
+- Activity map processing: `src/olfactory_modeling/pipeline/activity_maps.py`
+- Dataset class: `src/olfactory_modeling/data/activity_map_dataset.py`
+- Models: `src/olfactory_modeling/models/baseline_nn.py`

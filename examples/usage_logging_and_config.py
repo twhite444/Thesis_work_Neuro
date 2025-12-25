@@ -8,7 +8,7 @@ production neural network training and experiment tracking.
 # Example 1: Basic Logging Setup
 # ============================================================================
 
-from neuro_foundation.utils import setup_logging, get_logger
+from olfactory_modeling.utils import setup_logging, get_logger
 from pathlib import Path
 
 # Setup logging for a training script
@@ -30,7 +30,7 @@ logger.error("GPU out of memory", exc_info=True)  # Full stack trace
 # Example 2: Quick Setup for Notebooks
 # ============================================================================
 
-from neuro_foundation.utils import quick_setup
+from olfactory_modeling.utils import quick_setup
 
 # Quick setup for interactive work
 logger = quick_setup(
@@ -45,7 +45,7 @@ logger.debug("Detailed debug info now visible")
 # Example 3: Environment-Aware Configuration
 # ============================================================================
 
-from neuro_foundation.config import Config
+from olfactory_modeling.config import Config
 import os
 
 # Set environment variables (usually in shell or cluster job script)
@@ -67,7 +67,7 @@ print(f"Log level: {config.logging.log_level}")  # INFO
 # Example 4: Using Configuration in Training
 # ============================================================================
 
-from neuro_foundation.config import default_config
+from olfactory_modeling.config import default_config
 
 # Access configuration
 data_dir = default_config.data.raw_data_dir
@@ -84,7 +84,7 @@ logger.info(f"Training with batch_size={batch_size}, lr={learning_rate}")
 
 import torch
 import torch.nn as nn
-from neuro_foundation.utils import get_logger
+from olfactory_modeling.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -119,7 +119,7 @@ def train_epoch(model, dataloader, optimizer, device):
 # Example 6: Creating Models with BaseNeuralModel
 # ============================================================================
 
-from neuro_foundation.models.base import BaseNeuralModel
+from olfactory_modeling.models.base import BaseNeuralModel
 import torch.nn as nn
 
 class MoleculeEncoder(BaseNeuralModel):
@@ -173,7 +173,7 @@ model.save_checkpoint(
 # Example 7: Production Logging for Long Jobs
 # ============================================================================
 
-from neuro_foundation.utils import setup_logging, get_logger
+from olfactory_modeling.utils import setup_logging, get_logger
 from pathlib import Path
 from datetime import datetime
 
@@ -216,7 +216,7 @@ logger.info("="*70)
 # Example 8: Debugging with Function Call Logging
 # ============================================================================
 
-from neuro_foundation.utils import get_logger, log_function_call
+from olfactory_modeling.utils import get_logger, log_function_call
 
 logger = get_logger(__name__, level="DEBUG")
 

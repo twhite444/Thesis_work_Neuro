@@ -14,7 +14,7 @@ import torch.nn as nn
 from pathlib import Path
 import tempfile
 
-from neuro_foundation.utils.metrics import (
+from olfactory_modeling.utils.metrics import (
     to_numpy,
     flatten_arrays,
     compute_correlation,
@@ -24,7 +24,7 @@ from neuro_foundation.utils.metrics import (
     sample_for_plotting,
     DEFAULT_MAX_SCATTER_POINTS,
 )
-from neuro_foundation.visualization.training_viz import plot_feature_importance
+from olfactory_modeling.visualization.training_viz import plot_feature_importance
 
 
 # ==================== Test Utility Functions ====================

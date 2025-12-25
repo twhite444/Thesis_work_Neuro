@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
+from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
 
 
 @pytest.mark.unit
@@ -14,7 +14,7 @@ def test_preprocess_empty_dataframe(tmp_path):
 @pytest.mark.unit
 def test_preprocess_invalid_smiles(tmp_path, monkeypatch):
     # Force invalid smiles raising behavior
-    import src.neuro_foundation.pipeline.preprocess as pp
+    import src.olfactory_modeling.pipeline.preprocess as pp
 
     def fake_smiles_to_mordred(smiles):
         # Simulate invalid SMILES causing NaNs and zero-only columns
@@ -36,7 +36,7 @@ def test_preprocess_invalid_smiles(tmp_path, monkeypatch):
 
 @pytest.mark.unit
 def test_preprocess_scaler_stats_length(tmp_path, monkeypatch):
-    import src.neuro_foundation.pipeline.preprocess as pp
+    import src.olfactory_modeling.pipeline.preprocess as pp
 
     def fake_smiles_to_mordred(smiles):
         return pd.DataFrame({'f1': [1.0, 3.0], 'f2': [2.0, 2.0]})

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from neuro_foundation.utils.logging_config import (
+from olfactory_modeling.utils.logging_config import (
     setup_logging,
     get_logger,
     quick_setup,

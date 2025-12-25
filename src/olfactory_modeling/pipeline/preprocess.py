@@ -57,7 +57,7 @@ def featurize_and_standardize(
     # Try to load cached Mordred features
     print(f"Loading Mordred descriptors for {len(smiles)} molecules...")
     try:
-        from src.neuro_foundation.data.pyrfume_loader import load_mordred_features_npz
+        from src.olfactory_modeling.data.pyrfume_loader import load_mordred_features_npz
         raw_data_dir = output_dir.replace('02_processed', '01_raw')
         mordred_features = load_mordred_features_npz(raw_data_dir)
         print(f"  ✓ Loaded {mordred_features.shape[1]} descriptors from cache ({raw_data_dir}/mordred_features_raw.npz)")

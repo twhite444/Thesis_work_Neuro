@@ -33,9 +33,9 @@ import torch
 # Add project root to path
 # sys.path.insert(0, str(Path(__file__).parent.parent))  # No longer needed with proper __init__.py
 
-from neuro_foundation.data.activity_map_dataset import MoleculeActivityMapDataset
-from neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP, MoleculeToActivityMapCNN
-from neuro_foundation.pipeline.train_nn import grid_search
+from olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
+from olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP, MoleculeToActivityMapCNN
+from olfactory_modeling.pipeline.train_nn import grid_search
 
 
 def parse_value(value_str):

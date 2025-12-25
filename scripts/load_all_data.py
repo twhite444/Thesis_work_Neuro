@@ -8,13 +8,25 @@ This script downloads data from Pyrfume and saves it in both formats:
 Usage:
     python scripts/load_all_data.py --output-dir data/01_raw
     python scripts/load_all_data.py --output-dir data/01_raw --skip-activity-maps
+
+## Scope and Assumptions
+
+This package is designed for modeling olfactory datasets in the
+[Pyrfume](https://pyrfume.org) ecosystem.
+
+Currently supported:
+- Leon dataset (primary)
+- Other Pyrfume datasets may be compatible but can require
+  loader-specific adjustments.
+
+This is not a general-purpose neuroscience or ML framework.
 """
 from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
 
-from neuro_foundation.data.pyrfume_loader import PyrfumeLoader
+from olfactory_modeling.data.pyrfume_loader import PyrfumeLoader
 
 
 def main(output_dir: str, skip_activity_maps: bool = False):
@@ -67,7 +79,7 @@ def main(output_dir: str, skip_activity_maps: bool = False):
         print(f"  - activity_maps.npz: {len(activity_maps)} maps")
         print(f"  - activity_maps_csv/: {len(activity_maps)} individual CSV files")
     print("\nFiles can be loaded using:")
-    print("  from src.neuro_foundation.data.pyrfume_loader import (")
+    print("  from src.olfactory_modeling.data.pyrfume_loader import (")
     print("      load_molecules_csv, load_mordred_features_npz,")
     print("      load_behavior_csv, load_stimuli_csv, load_activity_maps_npz")
     print("  )")

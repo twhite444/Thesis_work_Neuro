@@ -7,9 +7,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import torch
-from src.neuro_foundation.data.activity_map_dataset import get_dataloaders
-from src.neuro_foundation.models.baseline_nn import get_model
-from src.neuro_foundation.pipeline.train_nn import train_nn
+from src.olfactory_modeling.data.activity_map_dataset import get_dataloaders
+from src.olfactory_modeling.models.baseline_nn import get_model
+from src.olfactory_modeling.pipeline.train_nn import train_nn
 
 print("="*60)
 print("PERFORMANCE TEST - 3 EPOCHS")

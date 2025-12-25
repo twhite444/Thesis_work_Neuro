@@ -1,13 +1,13 @@
 import pandas as pd
 import types
 import pytest
-from src.neuro_foundation.data.pyrfume_loader import PyrfumeLoader
+from src.olfactory_modeling.data.pyrfume_loader import PyrfumeLoader
 
 
 @pytest.mark.unit
 def test_pyrfume_loader_writes_raw(tmp_path, monkeypatch):
     # Mock pyrfume functions to avoid network/file dependencies
-    import src.neuro_foundation.data.pyrfume_loader as pl
+    import src.olfactory_modeling.data.pyrfume_loader as pl
 
     def fake_load_manifest(name):
         return {"name": name}
@@ -41,7 +41,7 @@ def test_pyrfume_loader_writes_raw(tmp_path, monkeypatch):
 
 @pytest.mark.unit
 def test_pyrfume_loader_images_optional(tmp_path, monkeypatch):
-    import src.neuro_foundation.data.pyrfume_loader as pl
+    import src.olfactory_modeling.data.pyrfume_loader as pl
 
     def fake_load_manifest(name):
         return {"name": name}

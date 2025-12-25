@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from src.neuro_foundation.pipeline.feature_select import select_features
+from src.olfactory_modeling.pipeline.feature_select import select_features
 
 
 @pytest.mark.unit

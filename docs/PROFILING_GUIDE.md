@@ -34,7 +34,7 @@ python scripts/profile_performance.py --model mlp --compare-devices
 **Use profiling utilities in your code:**
 
 ```python
-from src.neuro_foundation.utils.profiling import Timer, EpochTimer
+from src.olfactory_modeling.utils.profiling import Timer, EpochTimer
 
 # Simple timing
 timer = Timer()
@@ -58,7 +58,7 @@ epoch_timer = EpochTimer()
 **Basic Usage:**
 
 ```python
-from src.neuro_foundation.utils.profiling import Timer
+from src.olfactory_modeling.utils.profiling import Timer
 
 timer = Timer()
 
@@ -157,7 +157,7 @@ Total time: 1.500s
 **Basic Usage:**
 
 ```python
-from src.neuro_foundation.utils.profiling import EpochTimer
+from src.olfactory_modeling.utils.profiling import EpochTimer
 
 epoch_timer = EpochTimer()
 
@@ -253,8 +253,8 @@ Epoch statistics:
 **Basic Usage:**
 
 ```python
-from src.neuro_foundation.utils.profiling import profile_dataloader
-from src.neuro_foundation.data.activity_map_dataset import get_dataloaders
+from src.olfactory_modeling.utils.profiling import profile_dataloader
+from src.olfactory_modeling.data.activity_map_dataset import get_dataloaders
 
 # Get dataloader
 train_loader, val_loader, test_loader = get_dataloaders(
@@ -319,8 +319,8 @@ stats = {
 **Basic Usage:**
 
 ```python
-from src.neuro_foundation.utils.profiling import compare_device_performance
-from src.neuro_foundation.models.baseline_nn import get_model
+from src.olfactory_modeling.utils.profiling import compare_device_performance
+from src.olfactory_modeling.models.baseline_nn import get_model
 import torch
 
 # Create model
@@ -583,7 +583,7 @@ python scripts/profile_performance.py --model mlp --profile-batches 50 --profile
 
 # 2. If dataloader is slow (>10ms/batch)
 # Modify: reduce num_workers, increase batch_size
-# in src/neuro_foundation/data/activity_map_dataset.py
+# in src/olfactory_modeling/data/activity_map_dataset.py
 
 # 3. Re-profile
 python scripts/profile_performance.py --model mlp --profile-batches 50
@@ -640,7 +640,7 @@ grep "Section breakdown" -A 10 modified.txt
 ### 1. Profile Specific Code Sections
 
 ```python
-from src.neuro_foundation.utils.profiling import Timer
+from src.olfactory_modeling.utils.profiling import Timer
 
 timer = Timer()
 
@@ -682,7 +682,7 @@ print(f"Memory used: {(mem_after - mem_before) / 1e6:.2f} MB")
 ### 3. Continuous Profiling During Training
 
 ```python
-from src.neuro_foundation.utils.profiling import EpochTimer
+from src.olfactory_modeling.utils.profiling import EpochTimer
 
 epoch_timer = EpochTimer()
 

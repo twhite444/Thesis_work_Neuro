@@ -17,7 +17,7 @@ Thesis_work_Neuro/
 │   └── reports/           # Analysis reports and figures
 │
 ├── src/                    # Source code (importable package)
-│   └── neuro_foundation/
+│   └── olfactory_modeling/
 │       ├── data/          # Data loading and graph generation
 │       └── pipeline/      # Processing pipeline modules
 │
@@ -71,7 +71,7 @@ Ready-to-use feature matrices and datasets:
 
 **Generation:**
 ```python
-from src.neuro_foundation.data.molecular_graphs import load_graph_by_cid, visualize_molecule_interactive
+from src.olfactory_modeling.data.molecular_graphs import load_graph_by_cid, visualize_molecule_interactive
 
 # Static visualization
 load_graph_by_cid(1183, mode='simple', projection='3d', save_image=True)
@@ -91,7 +91,7 @@ Activity pattern analysis:
 
 **Generation:**
 ```python
-from src.neuro_foundation.pipeline.activity_maps import load_and_mask_maps
+from src.olfactory_modeling.pipeline.activity_maps import load_and_mask_maps
 
 averaged_maps, cids, mask = load_and_mask_maps(
     'data/01_raw/behavior_directory.csv',
@@ -108,7 +108,7 @@ Training metrics, model comparisons, and analysis figures:
 - Comparison charts
 - Training curves
 
-## Source Code (`src/neuro_foundation/`)
+## Source Code (`src/olfactory_modeling/`)
 
 ### `data/` - Data Loading and Graph Generation
 
@@ -121,15 +121,15 @@ Training metrics, model comparisons, and analysis figures:
 **Key Functions:**
 ```python
 # Load molecules
-from src.neuro_foundation.data.pyrfume_loader import load_molecules_npz
+from src.olfactory_modeling.data.pyrfume_loader import load_molecules_npz
 molecules = load_molecules_npz('data/01_raw')
 
 # Generate graphs
-from src.neuro_foundation.data.molecular_graphs import generate_molecular_graphs
+from src.olfactory_modeling.data.molecular_graphs import generate_molecular_graphs
 generate_molecular_graphs('data/01_raw')
 
 # Visualize specific molecule
-from src.neuro_foundation.data.molecular_graphs import load_graph_by_cid
+from src.olfactory_modeling.data.molecular_graphs import load_graph_by_cid
 load_graph_by_cid(1183, mode='detailed', projection='3d')
 ```
 
@@ -144,20 +144,20 @@ load_graph_by_cid(1183, mode='detailed', projection='3d')
 **Typical Pipeline:**
 ```python
 # 1. Load and process activity maps
-from src.neuro_foundation.pipeline.activity_maps import load_and_mask_maps
+from src.olfactory_modeling.pipeline.activity_maps import load_and_mask_maps
 maps, cids, mask = load_and_mask_maps('data/01_raw/behavior_directory.csv',
                                        output_dir='data/03_processed')
 
 # 2. Preprocess features
-from src.neuro_foundation.pipeline.preprocess import preprocess_features
+from src.olfactory_modeling.pipeline.preprocess import preprocess_features
 X_clean = preprocess_features(X_raw)
 
 # 3. Select features
-from src.neuro_foundation.pipeline.feature_select import select_features
+from src.olfactory_modeling.pipeline.feature_select import select_features
 X_selected = select_features(X_clean, y, method='variance')
 
 # 4. Train model
-from src.neuro_foundation.pipeline.train_linear import train_linear_model
+from src.olfactory_modeling.pipeline.train_linear import train_linear_model
 model, metrics = train_linear_model(X_train, y_train)
 ```
 
@@ -233,10 +233,10 @@ conda activate thesis-neuro
 python scripts/load_data.py
 
 # 3. Generate molecular graphs
-python -c "from src.neuro_foundation.data.molecular_graphs import generate_molecular_graphs; generate_molecular_graphs('data/01_raw')"
+python -c "from src.olfactory_modeling.data.molecular_graphs import generate_molecular_graphs; generate_molecular_graphs('data/01_raw')"
 
 # 4. Visualize a molecule
-python -c "from src.neuro_foundation.data.molecular_graphs import load_graph_by_cid; load_graph_by_cid(1183, mode='simple', projection='3d')"
+python -c "from src.olfactory_modeling.data.molecular_graphs import load_graph_by_cid; load_graph_by_cid(1183, mode='simple', projection='3d')"
 
 # 5. Process activity maps
 python scripts/preprocess.py

@@ -7,10 +7,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import torch
 import numpy as np
-from src.neuro_foundation.data.activity_map_dataset import MoleculeActivityMapDataset
-from src.neuro_foundation.models.baseline_nn import get_model
-from src.neuro_foundation.pipeline.train_nn import train_nn
-from src.neuro_foundation.visualization import (
+from src.olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
+from src.olfactory_modeling.models.baseline_nn import get_model
+from src.olfactory_modeling.pipeline.train_nn import train_nn
+from src.olfactory_modeling.visualization import (
     plot_training_curves,
     plot_prediction_scatter,
     plot_activity_map_comparison,

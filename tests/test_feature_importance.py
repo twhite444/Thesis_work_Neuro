@@ -19,10 +19,10 @@ from torch.utils.data import DataLoader
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from neuro_foundation.data.activity_map_dataset import MoleculeActivityMapDataset
-from neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP
-from neuro_foundation.pipeline.train_nn import train_nn
-from neuro_foundation.visualization import plot_feature_importance
+from olfactory_modeling.data.activity_map_dataset import MoleculeActivityMapDataset
+from olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
+from olfactory_modeling.pipeline.train_nn import train_nn
+from olfactory_modeling.visualization import plot_feature_importance
 
 
 def load_feature_names(processed_dir: str = "data/02_processed") -> list[str]:

@@ -13,7 +13,7 @@ data/01_raw/
 
                     ↓ [run_activity_maps.py]
                     
-src/neuro_foundation/pipeline/activity_maps.py
+src/olfactory_modeling/pipeline/activity_maps.py
 ├── Selection Strategies (pluggable)
 │   ├── select_best_by_quality()      # Composite score method (default)
 │   ├── select_by_averaging()         # Average all maps per CID
@@ -247,7 +247,7 @@ After running the pipeline, you'll find these files in `data/02_processed/`:
 The dataset automatically loads pre-processed maps:
 
 ```python
-from src.neuro_foundation.data.activity_map_dataset import get_dataloaders
+from src.olfactory_modeling.data.activity_map_dataset import get_dataloaders
 
 # Dataloaders automatically use processed maps from data/02_processed/
 train_loader, val_loader, test_loader = get_dataloaders(
@@ -359,7 +359,7 @@ done
 ## Code Organization
 
 ```
-src/neuro_foundation/pipeline/activity_maps.py
+src/olfactory_modeling/pipeline/activity_maps.py
 ├── SelectionStrategy (Enum)
 ├── ActivityMapRecord (dataclass)
 │
@@ -414,5 +414,5 @@ python scripts/run_activity_maps.py
 ```
 
 For questions or issues, see the pipeline code at:
-- `src/neuro_foundation/pipeline/activity_maps.py`
+- `src/olfactory_modeling/pipeline/activity_maps.py`
 - `scripts/run_activity_maps.py`

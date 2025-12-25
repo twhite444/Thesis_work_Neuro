@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 import pandas as pd
 
-from neuro_foundation.pipeline.train_linear import train_linear_regression
+from olfactory_modeling.pipeline.train_linear import train_linear_regression
 
 
 def main(input_csv: str, target_column: str, output_dir: str):

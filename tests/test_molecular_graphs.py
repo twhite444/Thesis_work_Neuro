@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 import tempfile
 
-from src.neuro_foundation.data.molecular_graphs import (
+from src.olfactory_modeling.data.molecular_graphs import (
     get_atom_features,
     get_bond_features,
     smiles_to_graph,

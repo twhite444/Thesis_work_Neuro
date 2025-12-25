@@ -22,9 +22,9 @@ import torch
 # Add project root to path
 # sys.path.insert(0, str(Path(__file__).parent.parent))  # No longer needed with proper __init__.py
 
-from neuro_foundation.data.activity_map_dataset import get_dataloaders
-from neuro_foundation.models.baseline_nn import get_model
-from src.neuro_foundation.utils.profiling import (
+from olfactory_modeling.data.activity_map_dataset import get_dataloaders
+from olfactory_modeling.models.baseline_nn import get_model
+from src.olfactory_modeling.utils.profiling import (
     Timer, 
     EpochTimer, 
     profile_dataloader,

@@ -18,7 +18,7 @@ from pathlib import Path
 # Add parent directory to path
 # sys.path.insert(0, str(Path(__file__).parent.parent))  # No longer needed with proper __init__.py
 
-from neuro_foundation.data.molecular_graphs import generate_and_save_molecular_graphs
+from olfactory_modeling.data.molecular_graphs import generate_and_save_molecular_graphs
 
 
 def main():

@@ -16,9 +16,9 @@ from pathlib import Path
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from neuro_foundation.data.activity_map_dataset import get_dataloaders
-from neuro_foundation.models.baseline_nn import get_model
-from neuro_foundation.pipeline.train_nn import train_nn
+from olfactory_modeling.data.activity_map_dataset import get_dataloaders
+from olfactory_modeling.models.baseline_nn import get_model
+from olfactory_modeling.pipeline.train_nn import train_nn
 
 
 def main():
@@ -102,7 +102,7 @@ def main():
     
     # Test on held-out test set
     print("\nEvaluating on test set...")
-    from neuro_foundation.pipeline.train_nn import validate_epoch
+    from olfactory_modeling.pipeline.train_nn import validate_epoch
     
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     model = model.to(device)

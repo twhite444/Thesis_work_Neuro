@@ -1,4 +1,4 @@
-"""Neuro Foundation - Modular neuroscience molecular data analysis.
+"""Olfactory Modeling - Modular neuroscience molecular data analysis.
 
 A comprehensive toolkit for analyzing molecular odorant data and neural activity maps
 from the Pyrfume database, supporting both classical machine learning and graph neural
@@ -11,9 +11,9 @@ Main Features:
 - Modular Design: Clean separation of data loading, preprocessing, training, and visualization
 
 Quick Start:
-    from neuro_foundation.data import PyrfumeLoader
-    from neuro_foundation.pipeline import featurize_and_standardize
-    from neuro_foundation.models import MoleculeToActivityMapMLP
+    from olfactory_modeling.data import PyrfumeLoader
+    from olfactory_modeling.pipeline import featurize_and_standardize
+    from olfactory_modeling.models import MoleculeToActivityMapMLP
 
     # Load data
     loader = PyrfumeLoader()

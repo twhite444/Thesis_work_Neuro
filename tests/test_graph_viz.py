@@ -8,7 +8,7 @@ import tempfile
 import os
 from unittest.mock import patch, MagicMock
 
-from src.neuro_foundation.data.molecular_graphs import (
+from src.olfactory_modeling.data.molecular_graphs import (
     smiles_to_graph,
     molecules_to_graphs,
     load_graph_by_cid
@@ -88,7 +88,7 @@ class TestVisualizationPaths:
         np.savez_compressed('data/01_raw/molecular_graphs.npz', **graph_data)
         
         # Mock the visualization function to avoid actually rendering
-        with patch('src.neuro_foundation.data.graph_viz.visualize_molecular_graph') as mock_viz:
+        with patch('src.olfactory_modeling.data.graph_viz.visualize_molecular_graph') as mock_viz:
             # Call with save_image=True
             load_graph_by_cid(180, data_dir='data/01_raw', show_image=True, save_image=True)
             
@@ -128,7 +128,7 @@ class TestVisualizationPaths:
         assert not Path('viz/molecules').exists()
         
         # Mock visualization to avoid rendering
-        with patch('src.neuro_foundation.data.graph_viz.visualize_molecular_graph'):
+        with patch('src.olfactory_modeling.data.graph_viz.visualize_molecular_graph'):
             load_graph_by_cid(180, data_dir='data/01_raw', show_image=True, save_image=True)
         
         # Check that directory was created
@@ -156,7 +156,7 @@ class TestVisualizationPaths:
         graph_data = molecules_to_graphs(df, verbose=False)
         np.savez_compressed('data/01_raw/molecular_graphs.npz', **graph_data)
         
-        with patch('src.neuro_foundation.data.graph_viz.visualize_molecular_graph'):
+        with patch('src.olfactory_modeling.data.graph_viz.visualize_molecular_graph'):
             load_graph_by_cid(180, data_dir='data/01_raw', show_image=True, save_image=True)
         
         # Check that no PNG or HTML files exist in data/ directory
@@ -225,7 +225,7 @@ class TestLoadGraphByCID:
         modes = ['simple', 'detailed']
         projections = ['2d', '3d']
         
-        with patch('src.neuro_foundation.data.graph_viz.visualize_molecular_graph') as mock_viz:
+        with patch('src.olfactory_modeling.data.graph_viz.visualize_molecular_graph') as mock_viz:
             for mode in modes:
                 for projection in projections:
                     load_graph_by_cid(
@@ -270,11 +270,11 @@ class TestLoadGraphByCID:
 class TestVisualizationFunctions:
     """Test visualization function behavior (mocked rendering)."""
     
-    @patch('src.neuro_foundation.data.graph_viz.RDKIT_AVAILABLE', True)
-    @patch('src.neuro_foundation.data.graph_viz.draw_molecule_from_smiles')
+    @patch('src.olfactory_modeling.data.graph_viz.RDKIT_AVAILABLE', True)
+    @patch('src.olfactory_modeling.data.graph_viz.draw_molecule_from_smiles')
     def test_visualize_molecular_graph_simple_2d(self, mock_draw, mock_graph_data):
         """Test simple 2D visualization."""
-        from src.neuro_foundation.data.graph_viz import visualize_molecular_graph
+        from src.olfactory_modeling.data.graph_viz import visualize_molecular_graph
         
         mock_draw.return_value = MagicMock()  # Mock PIL Image
         
@@ -291,11 +291,11 @@ class TestVisualizationFunctions:
                     projection='2d'
                 )
     
-    @patch('src.neuro_foundation.data.graph_viz.PYMOL_AVAILABLE', True)
-    @patch('src.neuro_foundation.data.graph_viz.visualize_molecule_3d_pymol')
+    @patch('src.olfactory_modeling.data.graph_viz.PYMOL_AVAILABLE', True)
+    @patch('src.olfactory_modeling.data.graph_viz.visualize_molecule_3d_pymol')
     def test_visualize_molecular_graph_simple_3d_pymol(self, mock_pymol, mock_graph_data, mock_molecules_df):
         """Test simple 3D visualization with PyMOL."""
-        from src.neuro_foundation.data.graph_viz import visualize_molecular_graph
+        from src.olfactory_modeling.data.graph_viz import visualize_molecular_graph
         
         mock_pymol.return_value = True  # Success
         
@@ -316,14 +316,14 @@ class TestVisualizationFunctions:
     
     def test_visualization_creates_output_directory(self, mock_graph_data):
         """Test that visualization creates output directory if needed."""
-        from src.neuro_foundation.data.graph_viz import visualize_molecular_graph
+        from src.olfactory_modeling.data.graph_viz import visualize_molecular_graph
         
         with tempfile.TemporaryDirectory() as tmpdir:
             nested_path = Path(tmpdir) / 'deep' / 'nested' / 'path' / 'test.png'
             
             with patch('matplotlib.pyplot.savefig'), \
                  patch('matplotlib.pyplot.close'), \
-                 patch('src.neuro_foundation.data.graph_viz.draw_molecule_from_smiles', return_value=MagicMock()):
+                 patch('src.olfactory_modeling.data.graph_viz.draw_molecule_from_smiles', return_value=MagicMock()):
                 
                 visualize_molecular_graph(
                     180,
@@ -363,9 +363,9 @@ class TestInteractiveVisualization:
         )
         
         # Mock the actual visualization to avoid py3Dmol dependency
-        from src.neuro_foundation.data.molecular_graphs import visualize_molecule_interactive
+        from src.olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
         
-        with patch('src.neuro_foundation.data.graph_viz.visualize_molecule_3d_interactive', return_value=True):
+        with patch('src.olfactory_modeling.data.graph_viz.visualize_molecule_3d_interactive', return_value=True):
             output_path = visualize_molecule_interactive(
                 180,
                 data_dir='data/01_raw',
@@ -395,9 +395,9 @@ class TestInteractiveVisualization:
             name=np.array(['Ethanol'])
         )
         
-        from src.neuro_foundation.data.molecular_graphs import visualize_molecule_interactive
+        from src.olfactory_modeling.data.molecular_graphs import visualize_molecule_interactive
         
-        with patch('src.neuro_foundation.data.graph_viz.visualize_molecule_3d_interactive', return_value=True):
+        with patch('src.olfactory_modeling.data.graph_viz.visualize_molecule_3d_interactive', return_value=True):
             visualize_molecule_interactive(180, data_dir='data/01_raw', open_browser=False)
         
         # Verify viz/molecules directory was created
@@ -409,7 +409,7 @@ class TestEdgeCases:
     
     def test_empty_graph_data(self):
         """Test behavior with empty graph data."""
-        from src.neuro_foundation.data.molecular_graphs import get_graph_by_cid
+        from src.olfactory_modeling.data.molecular_graphs import get_graph_by_cid
         
         empty_data = {
             'cids': np.array([]),
@@ -425,7 +425,7 @@ class TestEdgeCases:
     
     def test_missing_npz_file(self, tmp_path):
         """Test handling of missing NPZ file."""
-        from src.neuro_foundation.data.molecular_graphs import load_graph_by_cid
+        from src.olfactory_modeling.data.molecular_graphs import load_graph_by_cid
         
         with pytest.raises(FileNotFoundError):
             load_graph_by_cid(180, data_dir=str(tmp_path))

@@ -25,7 +25,7 @@ from matplotlib.patches import Rectangle
 from scipy.stats import pearsonr
 
 # Import utility functions for metrics and array operations
-from neuro_foundation.utils.metrics import (
+from olfactory_modeling.utils.metrics import (
     compute_correlation,
     compute_mse,
     compute_mae,
@@ -801,7 +801,7 @@ def plot_feature_importance(
         RuntimeError: If weights contain NaN/Inf values
         
     Example:
-        >>> from neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP
+        >>> from olfactory_modeling.models.baseline_nn import MoleculeToActivityMapMLP
         >>> import pandas as pd
         >>> 
         >>> # Load feature names

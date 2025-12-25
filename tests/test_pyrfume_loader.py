@@ -9,7 +9,7 @@ Tests cover:
 import pytest
 import pandas as pd
 import numpy as np
-from src.neuro_foundation.data.pyrfume_loader import (
+from src.olfactory_modeling.data.pyrfume_loader import (
     load_molecules_csv,
     load_molecules_npz,
     load_behavior_csv,

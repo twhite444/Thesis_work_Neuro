@@ -2,9 +2,9 @@ import pandas as pd
 import json
 import pytest
 
-from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
-from src.neuro_foundation.pipeline.feature_select import select_features
-from src.neuro_foundation.pipeline.train_linear import train_linear_regression
+from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
+from src.olfactory_modeling.pipeline.feature_select import select_features
+from src.olfactory_modeling.pipeline.train_linear import train_linear_regression
 
 
 @pytest.mark.integration
@@ -16,7 +16,7 @@ def test_end_to_end_pipeline(tmp_path, monkeypatch):
     })
 
     # Monkeypatch mordred featurization to be fast/deterministic
-    import src.neuro_foundation.pipeline.preprocess as pp
+    import src.olfactory_modeling.pipeline.preprocess as pp
     def fake_smiles_to_mordred(smiles):
         # 3 samples, 4 features; include one zero-only to be dropped
         return pd.DataFrame({

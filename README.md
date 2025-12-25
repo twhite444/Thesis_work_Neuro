@@ -1,10 +1,22 @@
-# Neuro Foundation
+# Olfactory Modeling
 
 A modular, well-tested foundation for neuroscience molecular data analysis, supporting both classical machine learning and graph neural network approaches.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://github.com/twhite444/Thesis_work_Neuro/workflows/Tests/badge.svg)](https://github.com/twhite444/Thesis_work_Neuro/actions)
 [![Linting](https://github.com/twhite444/Thesis_work_Neuro/workflows/Lint/badge.svg)](https://github.com/twhite444/Thesis_work_Neuro/actions)
+
+## Scope and Assumptions
+
+This package is designed for modeling olfactory datasets in the
+[Pyrfume](https://pyrfume.org) ecosystem.
+
+Currently supported:
+- Leon dataset (primary)
+- Other Pyrfume datasets may be compatible but can require
+  loader-specific adjustments.
+
+This is not a general-purpose neuroscience or ML framework.
 
 ## ⚡ What's New (Dec 2024)
 
@@ -207,7 +219,7 @@ See [`docs/PROFILING_QUICKSTART.md`](docs/PROFILING_QUICKSTART.md) for details.
 
 ```
 Thesis_work_Neuro/
-├── src/neuro_foundation/          # Core library code
+├── src/olfactory_modeling/          # Core library code
 │   ├── data/                       # Data loading and interfaces
 │   │   ├── interfaces.py           # Abstract base classes
 │   │   ├── pyrfume_loader.py       # Pyrfume data loader
@@ -297,8 +309,8 @@ See [docs/VISUALIZATION_GUIDE.md](docs/VISUALIZATION_GUIDE.md) for examples.
 
 ### Classical ML Workflow
 ```python
-from src.neuro_foundation.data.pyrfume_loader import PyrfumeLoader, load_molecules_npz
-from src.neuro_foundation.pipeline.preprocess import featurize_smiles_batch
+from src.olfactory_modeling.data.pyrfume_loader import PyrfumeLoader, load_molecules_npz
+from src.olfactory_modeling.pipeline.preprocess import featurize_smiles_batch
 
 # Load data
 loader = PyrfumeLoader(output_dir='data/01_raw')
@@ -315,7 +327,7 @@ features_df = featurize_smiles_batch(
 
 ### Graph-Based Workflow
 ```python
-from src.neuro_foundation.data.molecular_graphs import load_graph_data, get_graph_by_cid
+from src.olfactory_modeling.data.molecular_graphs import load_graph_data, get_graph_by_cid
 
 # Load pre-generated graphs
 graph_data = load_graph_data('data/01_raw')
@@ -332,7 +344,7 @@ print(f"Edge features shape: {graph['edge_attr'].shape}")
 
 ### Activity Map Analysis
 ```python
-from src.neuro_foundation.pipeline.activity_maps import pipeline_load_and_mask
+from src.olfactory_modeling.pipeline.activity_maps import pipeline_load_and_mask
 
 # Process activity maps for molecules
 results = pipeline_load_and_mask(
@@ -362,7 +374,7 @@ mypy --ignore-missing-imports src/
 
 ### Adding New Features
 
-1. Implement in `src/neuro_foundation/`
+1. Implement in `src/olfactory_modeling/`
 2. Add tests in `tests/`
 3. Update documentation
 4. Run linters and tests

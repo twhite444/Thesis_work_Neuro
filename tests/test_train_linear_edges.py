@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pytest
-from src.neuro_foundation.pipeline.train_linear import train_linear_regression
+from src.olfactory_modeling.pipeline.train_linear import train_linear_regression
 
 
 @pytest.mark.unit

@@ -22,9 +22,9 @@ from pathlib import Path
 
 import torch
 
-from neuro_foundation.data.activity_map_dataset import get_dataloaders, MoleculeActivityMapDataset
-from neuro_foundation.models.baseline_nn import get_model
-from neuro_foundation.pipeline.train_nn import train_nn, train_nn_kfold
+from olfactory_modeling.data.activity_map_dataset import get_dataloaders, MoleculeActivityMapDataset
+from olfactory_modeling.models.baseline_nn import get_model
+from olfactory_modeling.pipeline.train_nn import train_nn, train_nn_kfold
 
 
 def main():

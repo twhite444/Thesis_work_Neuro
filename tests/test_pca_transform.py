@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from neuro_foundation.pipeline.pca_transform import (
+from olfactory_modeling.pipeline.pca_transform import (
     fit_pca_on_maps,
     transform_maps_with_pca,
     load_pca_transformed_maps,

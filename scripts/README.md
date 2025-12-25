@@ -141,6 +141,6 @@ Key dependencies:
 
 ## See Also
 
-- **Source Code**: `src/neuro_foundation/` - Reusable modules
+- **Source Code**: `src/olfactory_modeling/` - Reusable modules
 - **Tests**: `tests/` - Unit and integration tests
 - **Documentation**: `README_FOUNDATION.md` - Project overview

@@ -16,13 +16,13 @@ Usage:
 import argparse
 from pathlib import Path
 
-from neuro_foundation.pipeline.pca_transform import (
+from olfactory_modeling.pipeline.pca_transform import (
     fit_pca_on_maps,
     load_pca_transformed_maps,
     process_activity_maps_with_pca,
     visualize_pca_scatter_2d,
 )
-from neuro_foundation.pipeline.activity_maps import load_processed_maps
+from olfactory_modeling.pipeline.activity_maps import load_processed_maps
 
 
 def main():

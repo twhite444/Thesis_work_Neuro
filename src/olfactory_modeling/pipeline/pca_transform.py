@@ -344,7 +344,7 @@ def process_activity_maps_with_pca(
         n_components: Number of PCA components to compute
         **process_kwargs: Additional arguments passed to process_activity_maps()
     """
-    from neuro_foundation.pipeline.activity_maps import process_activity_maps
+    from olfactory_modeling.pipeline.activity_maps import process_activity_maps
     
     # Step 1: Process raw activity maps
     print("\n" + "="*80)

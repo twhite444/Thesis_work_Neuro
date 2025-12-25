@@ -81,7 +81,7 @@ where = ["src"]
 exclude = ["tests*", "docs*", "scripts*", "legacy*"]
 
 [tool.setuptools.package-data]
-"neuro_foundation" = ["py.typed"]
+"olfactory_modeling" = ["py.typed"]
 
 [tool.black]
 line-length = 88
@@ -105,7 +105,7 @@ extend-exclude = '''
 profile = "black"
 multi_line_output = 3
 line_length = 88
-known_first_party = ["neuro_foundation"]
+known_first_party = ["olfactory_modeling"]
 known_third_party = ["torch", "numpy", "pandas", "sklearn"]
 
 [tool.mypy]

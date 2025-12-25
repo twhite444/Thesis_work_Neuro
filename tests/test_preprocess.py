@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
+from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
 
 
 @pytest.mark.unit

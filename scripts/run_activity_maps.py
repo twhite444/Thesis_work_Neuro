@@ -27,7 +27,7 @@ Usage examples:
 import argparse
 from pathlib import Path
 
-from neuro_foundation.pipeline.activity_maps import (
+from olfactory_modeling.pipeline.activity_maps import (
     process_activity_maps,
     SelectionStrategy,
 )

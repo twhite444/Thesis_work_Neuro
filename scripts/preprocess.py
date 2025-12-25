@@ -2,8 +2,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from neuro_foundation.pipeline.preprocess import featurize_and_standardize
-from neuro_foundation.data.pyrfume_loader import (
+from olfactory_modeling.pipeline.preprocess import featurize_and_standardize
+from olfactory_modeling.data.pyrfume_loader import (
     PyrfumeLoader,
     load_molecules_npz,
 )

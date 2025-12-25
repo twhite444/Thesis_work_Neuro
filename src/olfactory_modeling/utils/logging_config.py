@@ -4,7 +4,7 @@ Provides consistent logging across all modules with file and console output,
 proper formatting, and configurable log levels.
 
 Usage:
-    from neuro_foundation.utils.logging_config import get_logger
+    from olfactory_modeling.utils.logging_config import get_logger
     
     logger = get_logger(__name__)
     logger.info("Processing started")
@@ -87,7 +87,7 @@ def setup_logging(
             log_dir = Path(log_dir)
             log_dir.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            log_file = log_dir / f"neuro_foundation_{timestamp}.log"
+            log_file = log_dir / f"olfactory_modeling_{timestamp}.log"
         else:
             log_file = Path(log_file)
             log_file.parent.mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.neuro_foundation.pipeline.activity_maps import (
+from src.olfactory_modeling.pipeline.activity_maps import (
     load_directory_csv,
     load_activity_maps,
     compute_global_mask,
@@ -59,7 +59,7 @@ def test_compute_global_mask_and_apply(tmp_path):
         np.array([[1, np.nan],[0, 2]]),
         np.array([[np.nan, 1],[1, 0]]),
     ]
-    from src.neuro_foundation.pipeline.activity_maps import ActivityMapRecord
+    from src.olfactory_modeling.pipeline.activity_maps import ActivityMapRecord
     recs = [ActivityMapRecord(cid=1, map=maps[0]), ActivityMapRecord(cid=2, map=maps[1])]
     mask = compute_global_mask(recs, coverage_threshold=0.5)
     assert mask.shape == maps[0].shape
@@ -72,7 +72,7 @@ def test_compute_global_mask_and_apply(tmp_path):
 
 @pytest.mark.unit
 def test_average_by_cid():
-    from src.neuro_foundation.pipeline.activity_maps import ActivityMapRecord
+    from src.olfactory_modeling.pipeline.activity_maps import ActivityMapRecord
     recs = [
         ActivityMapRecord(cid=1, map=np.array([[1, 2],[3, 4]])),
         ActivityMapRecord(cid=1, map=np.array([[3, 2],[1, 0]])),

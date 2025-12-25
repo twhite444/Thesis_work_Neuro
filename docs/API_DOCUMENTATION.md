@@ -7,7 +7,7 @@ Complete reference for all modules, functions, and classes in the Neuro Foundati
 ## 📦 **Module Overview**
 
 ```
-src/neuro_foundation/
+src/olfactory_modeling/
 ├── data/
 │   ├── interfaces.py       # Data interfaces and types
 │   └── pyrfume_loader.py   # Data loading utilities
@@ -22,7 +22,7 @@ src/neuro_foundation/
 
 ## 🗂️ **Data Module**
 
-### `src.neuro_foundation.data.pyrfume_loader`
+### `src.olfactory_modeling.data.pyrfume_loader`
 
 Handles all data loading from Pyrfume database with dual CSV/NPZ format support.
 
@@ -45,7 +45,7 @@ class PyrfumeLoader:
 
 **Usage Example:**
 ```python
-from src.neuro_foundation.data.pyrfume_loader import PyrfumeLoader
+from src.olfactory_modeling.data.pyrfume_loader import PyrfumeLoader
 
 # Initialize loader
 loader = PyrfumeLoader(output_dir='data/01_raw')
@@ -170,7 +170,7 @@ def load_activity_map_by_cid_averaged(cid: int, data_dir: str = "data/01_raw") -
 
 ## ⚙️ **Pipeline Module**
 
-### `src.neuro_foundation.pipeline.preprocess`
+### `src.olfactory_modeling.pipeline.preprocess`
 
 Feature extraction using Mordred molecular descriptors.
 
@@ -195,8 +195,8 @@ def featurize_and_standardize(
         4. Save as cleaned_data.csv
         
     Example:
-        from src.neuro_foundation.data.pyrfume_loader import load_molecules_npz
-        from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
+        from src.olfactory_modeling.data.pyrfume_loader import load_molecules_npz
+        from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
         
         molecules = load_molecules_npz()
         features = featurize_and_standardize(molecules)
@@ -210,7 +210,7 @@ def featurize_and_standardize(
 
 ---
 
-### `src.neuro_foundation.pipeline.feature_select`
+### `src.olfactory_modeling.pipeline.feature_select`
 
 Variance-based feature selection.
 
@@ -249,7 +249,7 @@ def select_features(
 
 ---
 
-### `src.neuro_foundation.pipeline.train_linear`
+### `src.olfactory_modeling.pipeline.train_linear`
 
 Linear regression model training.
 
@@ -290,7 +290,7 @@ def train_linear_model(
 
 ---
 
-### `src.neuro_foundation.pipeline.activity_maps`
+### `src.olfactory_modeling.pipeline.activity_maps`
 
 Brain activity map processing with masking and averaging.
 
@@ -589,7 +589,7 @@ Values: Standardized (mean=0, std=1)
 
 ### Pattern 1: Fast Data Loading
 ```python
-from src.neuro_foundation.data.pyrfume_loader import (
+from src.olfactory_modeling.data.pyrfume_loader import (
     load_molecules_npz,
     load_behavior_npz,
     load_activity_maps_by_cid
@@ -605,9 +605,9 @@ maps = load_activity_maps_by_cid(180)  # acetone
 
 ### Pattern 2: Feature Pipeline
 ```python
-from src.neuro_foundation.data.pyrfume_loader import load_molecules_npz
-from src.neuro_foundation.pipeline.preprocess import featurize_and_standardize
-from src.neuro_foundation.pipeline.feature_select import select_features
+from src.olfactory_modeling.data.pyrfume_loader import load_molecules_npz
+from src.olfactory_modeling.pipeline.preprocess import featurize_and_standardize
+from src.olfactory_modeling.pipeline.feature_select import select_features
 
 # Load data
 molecules = load_molecules_npz()
@@ -621,7 +621,7 @@ selected = select_features(features, threshold=1.0)
 
 ### Pattern 3: Activity Map Analysis
 ```python
-from src.neuro_foundation.pipeline.activity_maps import pipeline_load_and_mask
+from src.olfactory_modeling.pipeline.activity_maps import pipeline_load_and_mask
 
 # Complete pipeline
 maps, cids, mask = pipeline_load_and_mask(
@@ -636,7 +636,7 @@ print(f"Mask covers {mask.sum()} brain pixels")
 
 ### Pattern 4: CID-based Analysis
 ```python
-from src.neuro_foundation.data.pyrfume_loader import (
+from src.olfactory_modeling.data.pyrfume_loader import (
     load_molecules_npz,
     load_activity_maps_by_cid,
     load_activity_map_by_cid_averaged
