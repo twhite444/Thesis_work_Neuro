@@ -44,7 +44,7 @@ Temporary cached outputs during processing:
 - Partial computations
 - Intermediate transformations
 
-### `03_processed/` - Final Processed Data
+### `02_processed/` - Final Processed Data
 Ready-to-use feature matrices and datasets:
 - Training/test splits
 - Feature matrices
