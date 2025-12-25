@@ -16,9 +16,9 @@ import sys
 from pathlib import Path
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# sys.path.insert(0, str(Path(__file__).parent.parent))  # No longer needed with proper __init__.py
 
-from src.neuro_foundation.data.molecular_graphs import generate_and_save_molecular_graphs
+from neuro_foundation.data.molecular_graphs import generate_and_save_molecular_graphs
 
 
 def main():

@@ -20,10 +20,10 @@ from pathlib import Path
 import torch
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# sys.path.insert(0, str(Path(__file__).parent.parent))  # No longer needed with proper __init__.py
 
-from src.neuro_foundation.data.activity_map_dataset import get_dataloaders
-from src.neuro_foundation.models.baseline_nn import get_model
+from neuro_foundation.data.activity_map_dataset import get_dataloaders
+from neuro_foundation.models.baseline_nn import get_model
 from src.neuro_foundation.utils.profiling import (
     Timer, 
     EpochTimer, 

@@ -59,15 +59,17 @@ This project provides tools for analyzing molecular odorant data and neural acti
 
 2. **Create and activate environment:**
    ```bash
-   # Using conda (recommended)
+   # Using conda (PRIMARY - recommended for full compatibility)
    conda env create -f environment.yml
    conda activate neuro-foundation
    
-   # Or using pip
+   # Alternative: using pip (may have dependency conflicts)
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    pip install -r requirements.txt
    ```
+   
+   > **Note:** This project uses conda as the primary package manager for reproducible environments and complex scientific dependencies. The `environment.yml` file contains all required packages with compatible versions.
 
 3. **Verify installation:**
    ```bash

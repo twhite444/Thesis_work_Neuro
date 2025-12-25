@@ -31,11 +31,11 @@ from pathlib import Path
 import torch
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# sys.path.insert(0, str(Path(__file__).parent.parent))  # No longer needed with proper __init__.py
 
-from src.neuro_foundation.data.activity_map_dataset import MoleculeActivityMapDataset
-from src.neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP, MoleculeToActivityMapCNN
-from src.neuro_foundation.pipeline.train_nn import grid_search
+from neuro_foundation.data.activity_map_dataset import MoleculeActivityMapDataset
+from neuro_foundation.models.baseline_nn import MoleculeToActivityMapMLP, MoleculeToActivityMapCNN
+from neuro_foundation.pipeline.train_nn import grid_search
 
 
 def parse_value(value_str):

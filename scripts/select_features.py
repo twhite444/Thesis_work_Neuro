@@ -1,13 +1,9 @@
 from __future__ import annotations
 import argparse
-import sys
 from pathlib import Path
 import pandas as pd
 
-# Add parent directory to path so we can import src
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from src.neuro_foundation.pipeline.feature_select import select_features
+from neuro_foundation.pipeline.feature_select import select_features
 
 
 def main(input_csv: str, threshold: float, output_dir: str):

@@ -25,13 +25,9 @@ Usage examples:
     python scripts/run_activity_maps.py --strategy first --no-visualizations
 """
 import argparse
-import sys
 from pathlib import Path
 
-# Add parent directory to path so we can import src
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from src.neuro_foundation.pipeline.activity_maps import (
+from neuro_foundation.pipeline.activity_maps import (
     process_activity_maps,
     SelectionStrategy,
 )

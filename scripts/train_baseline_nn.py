@@ -22,12 +22,9 @@ from pathlib import Path
 
 import torch
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from src.neuro_foundation.data.activity_map_dataset import get_dataloaders, MoleculeActivityMapDataset
-from src.neuro_foundation.models.baseline_nn import get_model
-from src.neuro_foundation.pipeline.train_nn import train_nn, train_nn_kfold
+from neuro_foundation.data.activity_map_dataset import get_dataloaders, MoleculeActivityMapDataset
+from neuro_foundation.models.baseline_nn import get_model
+from neuro_foundation.pipeline.train_nn import train_nn, train_nn_kfold
 
 
 def main():

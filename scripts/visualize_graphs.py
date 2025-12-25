@@ -17,11 +17,11 @@ import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))  # No longer needed with proper __init__.py
 
-from src.neuro_foundation.data.molecular_graphs import load_graph_data
-from src.neuro_foundation.data.pyrfume_loader import load_molecules_npz
-from src.neuro_foundation.data.graph_viz import (
+from neuro_foundation.data.molecular_graphs import load_graph_data
+from neuro_foundation.data.pyrfume_loader import load_molecules_npz
+from neuro_foundation.data.graph_viz import (
     visualize_molecular_graph,
     visualize_multiple_graphs,
     compare_molecule_and_graph,
