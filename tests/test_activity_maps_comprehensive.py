@@ -208,10 +208,10 @@ def test_apply_mask(mock_activity_maps_data):
     assert len(masked_records) == len(records)
     assert all(isinstance(r, ActivityMapRecord) for r in masked_records)
     
-    # Check that mask was applied (values outside mask are 0)
+    # Check that mask was applied (values outside mask are NaN)
     for original, masked in zip(records, masked_records):
-        # Where mask is False, masked map should be 0
-        assert (masked.map[~mask] == 0).all()
+        # Where mask is False, masked map should be NaN
+        assert np.isnan(masked.map[~mask]).all()
 
 
 # ===== CID Averaging Tests =====
@@ -389,10 +389,11 @@ def test_activity_map_nan_handling(tmp_path):
     df = load_directory_csv(str(behavior_path))
     records = load_activity_maps(df, data_dir=str(data_dir))
     
-    # NaN should be converted to 0
-    assert not np.isnan(records[0].map).any()
-    assert records[0].map[0, 0] == 0
-    assert records[0].map[2, 2] == 0
+    # NaN should be preserved (not converted to 0)
+    assert np.isnan(records[0].map[0, 0])
+    assert np.isnan(records[0].map[2, 2])
+    # Other values should remain as loaded
+    assert records[0].map[0, 1] == 1.0
 
 
 if __name__ == "__main__":

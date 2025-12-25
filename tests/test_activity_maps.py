@@ -66,8 +66,8 @@ def test_compute_global_mask_and_apply(tmp_path):
     masked = apply_mask(recs, mask)
     # Ensure mask is binary
     assert set(np.unique(mask)).issubset({False, True})
-    # Masked values should be zero where mask is False
-    assert np.all((masked[0].map[~mask]) == 0)
+    # Masked values should be NaN where mask is False
+    assert np.all(np.isnan(masked[0].map[~mask]))
 
 
 @pytest.mark.unit
