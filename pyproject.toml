@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "neuro-foundation"
+name = "olfactory-modeling"
 version = "0.1.0"
-description = "Modular neuroscience molecular data analysis toolkit"
+description = "Olfactory modeling toolkit for neuroscience molecular data analysis"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
