@@ -14,6 +14,7 @@ from .io_utils import save_checkpoint, generate_visualization_safe, save_json_sa
 from .validation import validate_training_params
 from .epoch_runners import train_epoch, validate_epoch
 from .setup import get_device, setup_training_components
+from .trainers import Trainer, TrainerConfig
 
 __all__ = [
     "compute_metrics",
@@ -25,4 +26,6 @@ __all__ = [
     "validate_epoch",
     "get_device",
     "setup_training_components",
+    "Trainer",
+    "TrainerConfig",
 ]

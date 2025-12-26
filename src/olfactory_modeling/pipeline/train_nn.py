@@ -46,6 +46,7 @@ from ..training.io_utils import save_checkpoint, generate_visualization_safe, sa
 from ..training.validation import validate_training_params
 from ..training.epoch_runners import train_epoch, validate_epoch
 from ..training.setup import get_device, setup_training_components
+from ..training.trainers import Trainer, TrainerConfig
 from ..evaluation.cross_validation import aggregate_cv_metrics
 
 logger = get_logger(__name__)
@@ -101,131 +102,20 @@ def train_nn(
         logger.error(f"Failed to create output directory {output_dir}: {e}", exc_info=True)
         raise
     
-    # Auto-detect device and move model
-    device = get_device(device, verbose=verbose)
-    model = model.to(device)
-    
-    # Setup training components
-    criterion, optimizer, scheduler, writer = setup_training_components(
-        model=model,
+    # Create trainer config
+    config = TrainerConfig(
+        output_dir=output_dir,
+        num_epochs=num_epochs,
         learning_rate=learning_rate,
         weight_decay=weight_decay,
-        output_dir=output_dir,
+        early_stopping_patience=early_stopping_patience,
+        device=device,
         verbose=verbose,
     )
     
-    # Training loop
-    best_val_loss = float('inf')
-    best_metrics = {}
-    epochs_without_improvement = 0
-    
-    # Track history for visualization
-    train_losses = []
-    val_losses = []
-    train_correlations = []
-    val_correlations = []
-    train_r2 = []
-    val_r2 = []
-    
-    if verbose:
-        logger.info(f"Training on {device}")
-        logger.info(f"Train samples: {len(train_loader.dataset)}")
-        logger.info(f"Val samples: {len(val_loader.dataset)}")
-        logger.info(f"Epochs: {num_epochs}")
-        logger.info(f"Learning rate: {learning_rate}")
-        if early_stopping_patience > 0:
-            logger.info(f"Early stopping patience: {early_stopping_patience}")
-    
-    for epoch in range(1, num_epochs + 1):
-        # Train
-        train_metrics = train_epoch(model, train_loader, optimizer, criterion, device, epoch, verbose)
-        
-        # Validate
-        val_metrics = validate_epoch(model, val_loader, criterion, device, epoch, verbose)
-        
-        # Track history
-        train_losses.append(train_metrics['loss'])
-        val_losses.append(val_metrics['loss'])
-        train_correlations.append(train_metrics.get('correlation', 0.0))
-        val_correlations.append(val_metrics.get('correlation', 0.0))
-        train_r2.append(train_metrics.get('r2', 0.0))
-        val_r2.append(val_metrics.get('r2', 0.0))
-        
-        # Learning rate scheduling
-        scheduler.step(val_metrics['loss'])
-        
-        # Log to tensorboard
-        for split, metrics in [('train', train_metrics), ('val', val_metrics)]:
-            for metric_name, value in metrics.items():
-                writer.add_scalar(f'{split}/{metric_name}', value, epoch)
-        
-        writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], epoch)
-        
-        if verbose:
-            logger.info(f"Epoch {epoch}/{num_epochs}:")
-            logger.info(f"  Train - Loss: {train_metrics['loss']:.4f}, Corr: {train_metrics['correlation']:.3f}, R²: {train_metrics['r2']:.3f}")
-            logger.info(f"  Val   - Loss: {val_metrics['loss']:.4f}, Corr: {val_metrics['correlation']:.3f}, R²: {val_metrics['r2']:.3f}")
-        
-        # Save best model
-        if val_metrics['loss'] < best_val_loss:
-            best_val_loss = val_metrics['loss']
-            best_metrics = val_metrics.copy()
-            best_metrics['epoch'] = epoch
-            epochs_without_improvement = 0
-            
-            checkpoint_path = os.path.join(output_dir, 'best_model.pth')
-            save_checkpoint(
-                checkpoint_path=checkpoint_path,
-                epoch=epoch,
-                model_state_dict=model.state_dict(),
-                optimizer_state_dict=optimizer.state_dict(),
-                metrics=val_metrics,
-                verbose=False,  # We'll log manually below
-            )
-            
-            if verbose:
-                logger.info(f"  ✓ Saved best model (val_loss={val_metrics['loss']:.4f})")
-        else:
-            epochs_without_improvement += 1
-            if early_stopping_patience > 0 and epochs_without_improvement >= early_stopping_patience:
-                if verbose:
-                    logger.warning(f"Early stopping triggered after {early_stopping_patience} epochs without improvement")
-                    logger.info(f"Best validation loss: {best_val_loss:.4f} at epoch {best_metrics['epoch']}")
-                break
-        
-        # Save checkpoint every 10 epochs
-        if epoch % 10 == 0:
-            checkpoint_path = os.path.join(output_dir, f'checkpoint_epoch{epoch}.pth')
-            save_checkpoint(
-                checkpoint_path=checkpoint_path,
-                epoch=epoch,
-                model_state_dict=model.state_dict(),
-                optimizer_state_dict=optimizer.state_dict(),
-                metrics=val_metrics,
-                verbose=verbose,
-            )
-    
-    writer.close()
-    
-    # Save final metrics (following train_linear.py pattern)
-    metrics_dict = {
-        'best_val_loss': best_val_loss,
-        'best_val_correlation': best_metrics.get('correlation', 0.0),
-        'best_val_r2': best_metrics.get('r2', 0.0),
-        'best_val_mae': best_metrics.get('mae', 0.0),
-        'best_epoch': best_metrics.get('epoch', 0),
-        'n_train': len(train_loader.dataset),
-        'n_val': len(val_loader.dataset),
-        'num_epochs': num_epochs,
-        'learning_rate': learning_rate,
-        # Add training history for visualization
-        'train_losses': train_losses,
-        'val_losses': val_losses,
-        'train_correlations': train_correlations,
-        'val_correlations': val_correlations,
-        'train_r2': train_r2,
-        'val_r2': val_r2,
-    }
+    # Create and run trainer
+    trainer = Trainer(model, train_loader, val_loader, config)
+    metrics_dict = trainer.train()
     
     # Save metrics to JSON with error handling
     try:
@@ -255,7 +145,7 @@ def train_nn(
             learning_rate=learning_rate,
             weight_decay=weight_decay,
             early_stopping_patience=early_stopping_patience,
-            device=device,
+            device=trainer.device,
             random_seed=getattr(train_loader.dataset, 'random_seed', None),
             optimizer_name="Adam",
         )
@@ -294,9 +184,6 @@ def train_nn(
     except ImportError as e:
         if verbose:
             logger.warning(f"Could not import visualization module: {e}")
-    
-    if verbose:
-        logger.info(f"Training complete! Best val loss: {best_val_loss:.4f}")
     
     return metrics_dict
 
