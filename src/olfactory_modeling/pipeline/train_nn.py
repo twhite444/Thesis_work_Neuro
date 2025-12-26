@@ -45,6 +45,7 @@ from ..training.metrics import compute_metrics
 from ..training.io_utils import save_checkpoint, generate_visualization_safe, save_json_safe
 from ..training.validation import validate_training_params
 from ..training.epoch_runners import train_epoch, validate_epoch
+from ..training.setup import get_device, setup_training_components
 from ..evaluation.cross_validation import aggregate_cv_metrics
 
 logger = get_logger(__name__)
@@ -100,30 +101,18 @@ def train_nn(
         logger.error(f"Failed to create output directory {output_dir}: {e}", exc_info=True)
         raise
     
-    # Auto-detect device
-    if device is None:
-        if torch.cuda.is_available():
-            device = torch.device('cuda')
-        elif torch.backends.mps.is_available():
-            device = torch.device('mps')
-        else:
-            device = torch.device('cpu')
-    
+    # Auto-detect device and move model
+    device = get_device(device, verbose=verbose)
     model = model.to(device)
     
     # Setup training components
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=10
+    criterion, optimizer, scheduler, writer = setup_training_components(
+        model=model,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
+        output_dir=output_dir,
+        verbose=verbose,
     )
-    
-    # Tensorboard logging
-    try:
-        writer = SummaryWriter(os.path.join(output_dir, 'logs'))
-    except Exception as e:
-        logger.error(f"Failed to create TensorBoard writer: {e}", exc_info=True)
-        raise
     
     # Training loop
     best_val_loss = float('inf')
