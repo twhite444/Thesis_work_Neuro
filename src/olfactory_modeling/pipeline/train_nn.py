@@ -44,6 +44,7 @@ from ..utils.metadata_logger import (
 from ..training.metrics import compute_metrics
 from ..training.io_utils import save_checkpoint, generate_visualization_safe, save_json_safe
 from ..training.validation import validate_training_params
+from ..training.epoch_runners import train_epoch, validate_epoch
 
 logger = get_logger(__name__)
 
@@ -72,11 +73,10 @@ def aggregate_cv_metrics(fold_metrics: list, metric_names: list) -> tuple:
     return mean_metrics, std_metrics
 
 
-# ===== Core Metric and Training Functions =====
+# ===== Core Training Functions =====
 
 
-
-def train_epoch(
+def train_nn(
     model: nn.Module,
     dataloader: DataLoader,
     optimizer: optim.Optimizer,
@@ -110,57 +110,6 @@ def train_epoch(
         
         with torch.no_grad():
             batch_metrics = compute_metrics(predictions, activity_maps)
-        
-        total_loss += loss.item()
-        for key, value in batch_metrics.items():
-            all_metrics[key].append(value)
-        
-        if verbose and isinstance(iterator, tqdm):
-            iterator.set_postfix({
-                'loss': f"{loss.item():.4f}",
-                'corr': f"{batch_metrics['correlation']:.3f}",
-            })
-    
-    avg_metrics = {
-        'loss': total_loss / len(dataloader),
-        'mse': np.mean(all_metrics['mse']),
-        'mae': np.mean(all_metrics['mae']),
-        'correlation': np.mean(all_metrics['correlation']),
-        'r2': np.mean(all_metrics['r2']),
-    }
-    
-    return avg_metrics
-
-
-@torch.no_grad()
-def validate_epoch(
-    model: nn.Module,
-    dataloader: DataLoader,
-    criterion: nn.Module,
-    device: torch.device,
-    epoch: int,
-    verbose: bool = True,
-) -> Dict[str, float]:
-    """Validate model for one epoch."""
-    model.eval()
-    
-    total_loss = 0.0
-    all_metrics = {
-        'mse': [],
-        'mae': [],
-        'correlation': [],
-        'r2': [],
-    }
-    
-    iterator = tqdm(dataloader, desc=f"Epoch {epoch} [Val]") if verbose else dataloader
-    for features, activity_maps, metadata in iterator:
-        features = features.to(device)
-        activity_maps = activity_maps.to(device)
-        
-        predictions = model(features)
-        loss = criterion(predictions, activity_maps)
-        
-        batch_metrics = compute_metrics(predictions, activity_maps)
         
         total_loss += loss.item()
         for key, value in batch_metrics.items():
