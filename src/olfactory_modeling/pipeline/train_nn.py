@@ -45,32 +45,9 @@ from ..training.metrics import compute_metrics
 from ..training.io_utils import save_checkpoint, generate_visualization_safe, save_json_safe
 from ..training.validation import validate_training_params
 from ..training.epoch_runners import train_epoch, validate_epoch
+from ..evaluation.cross_validation import aggregate_cv_metrics
 
 logger = get_logger(__name__)
-
-
-# ===== Helper Functions =====
-
-
-def aggregate_cv_metrics(fold_metrics: list, metric_names: list) -> tuple:
-    """Aggregate metrics across K-fold cross-validation folds.
-    
-    Args:
-        fold_metrics: List of metric dictionaries from each fold
-        metric_names: List of metric names to aggregate
-        
-    Returns:
-        Tuple of (mean_metrics, std_metrics) dictionaries
-    """
-    mean_metrics = {}
-    std_metrics = {}
-    
-    for metric in metric_names:
-        values = [fold[metric] for fold in fold_metrics]
-        mean_metrics[metric] = np.mean(values)
-        std_metrics[metric] = np.std(values)
-    
-    return mean_metrics, std_metrics
 
 
 # ===== Core Training Functions =====
