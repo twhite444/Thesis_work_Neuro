@@ -50,63 +50,7 @@ from ..evaluation.cross_validation import aggregate_cv_metrics
 logger = get_logger(__name__)
 
 
-# ===== Core Training Functions =====
-
-
-def train_nn(
-    model: nn.Module,
-    dataloader: DataLoader,
-    optimizer: optim.Optimizer,
-    criterion: nn.Module,
-    device: torch.device,
-    epoch: int,
-    verbose: bool = True,
-) -> Dict[str, float]:
-    """Train for one epoch."""
-    model.train()
-    
-    total_loss = 0.0
-    all_metrics = {
-        'mse': [],
-        'mae': [],
-        'correlation': [],
-        'r2': [],
-    }
-    
-    iterator = tqdm(dataloader, desc=f"Epoch {epoch} [Train]") if verbose else dataloader
-    for features, activity_maps, metadata in iterator:
-        features = features.to(device)
-        activity_maps = activity_maps.to(device)
-        
-        optimizer.zero_grad()
-        predictions = model(features)
-        loss = criterion(predictions, activity_maps)
-        
-        loss.backward()
-        optimizer.step()
-        
-        with torch.no_grad():
-            batch_metrics = compute_metrics(predictions, activity_maps)
-        
-        total_loss += loss.item()
-        for key, value in batch_metrics.items():
-            all_metrics[key].append(value)
-        
-        if verbose and isinstance(iterator, tqdm):
-            iterator.set_postfix({
-                'loss': f"{loss.item():.4f}",
-                'corr': f"{batch_metrics['correlation']:.3f}",
-            })
-    
-    avg_metrics = {
-        'loss': total_loss / len(dataloader),
-        'mse': np.mean(all_metrics['mse']),
-        'mae': np.mean(all_metrics['mae']),
-        'correlation': np.mean(all_metrics['correlation']),
-        'r2': np.mean(all_metrics['r2']),
-    }
-    
-    return avg_metrics
+# ===== Main Training Functions =====
 
 
 def train_nn(
