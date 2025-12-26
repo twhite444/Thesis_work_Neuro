@@ -75,10 +75,13 @@ def load_activity_maps(directory_df: pd.DataFrame, data_dir: str = 'data/01_raw'
     return records
 
 
-def compute_global_mask(records: List[ActivityMapRecord], coverage_threshold: float, min_region_size: int = 100) -> np.ndarray:
+def compute_global_mask(records: List[ActivityMapRecord], coverage_threshold: float, min_region_size: int = 100) -> Tuple[np.ndarray, np.ndarray]:
     """Compute a global mask based on coverage across maps.
     coverage_threshold in [0,1] indicates fraction of maps that must have finite values.
     Coverage is defined as pixel existence (np.isfinite).
+    
+    Returns:
+        Tuple of (mask, valid_counts) where valid_counts shows how many maps cover each pixel
     """
     if not records:
         raise ValueError("No activity maps provided")
@@ -94,7 +97,7 @@ def compute_global_mask(records: List[ActivityMapRecord], coverage_threshold: fl
     counts = np.bincount(labeled_mask.ravel())
     valid_regions = np.isin(labeled_mask, np.where(counts >= min_region_size)[0])
     refined &= valid_regions
-    return refined
+    return refined, valid_counts
 
 
 def apply_mask(records: List[ActivityMapRecord], mask: np.ndarray) -> List[ActivityMapRecord]:
@@ -111,25 +114,28 @@ def apply_mask(records: List[ActivityMapRecord], mask: np.ndarray) -> List[Activ
 def apply_value_policy(map_arr: np.ndarray, mask: np.ndarray, value_policy: str) -> np.ndarray:
     """Apply value filtering policy inside the ROI only.
     
+    Filtered values are set to NaN (not 0) to maintain consistent NaN-based
+    masking throughout the pipeline. Final conversion to 0 happens at the end.
+    
     Args:
-        map_arr: Activity map array
+        map_arr: Activity map array (may contain NaNs)
         mask: Boolean ROI mask
         value_policy: "all", "pos", or "neg"
         
     Returns:
-        Array with policy applied inside ROI, dropped values set to 0
+        Array with policy applied inside ROI, filtered values set to NaN
     """
     result = map_arr.copy()
     if value_policy == "all":
         pass  # Keep all values
     elif value_policy == "pos":
-        # Keep only >0 inside ROI, set others to 0
+        # Keep only positive values inside ROI, set others to NaN
         inside_roi = mask
-        result[inside_roi & (result <= 0)] = 0.0
+        result[inside_roi & (result <= 0)] = np.nan
     elif value_policy == "neg":
-        # Keep only <0 inside ROI, set others to 0
+        # Keep only negative values inside ROI, set others to NaN
         inside_roi = mask
-        result[inside_roi & (result >= 0)] = 0.0
+        result[inside_roi & (result >= 0)] = np.nan
     else:
         raise ValueError(f"Unknown value_policy: {value_policy}")
     return result
@@ -163,16 +169,16 @@ def compute_map_stats(map_arr: np.ndarray, mask: np.ndarray) -> Dict[str, float]
         mask: Boolean ROI mask
         
     Returns:
-        Dictionary with statistics
+        Dictionary with statistics (all values converted to Python native types)
     """
     roi_pixels = map_arr[mask]
     roi_finite_mask = np.isfinite(roi_pixels)
     roi_finite = roi_pixels[roi_finite_mask]
     
     stats = {
-        'roi_total_pixels': mask.sum(),
-        'roi_finite_pixels': len(roi_finite),
-        'roi_finite_fraction': len(roi_finite) / mask.sum() if mask.sum() > 0 else 0.0,
+        'roi_total_pixels': int(mask.sum()),  # Convert numpy int64 to Python int
+        'roi_finite_pixels': int(len(roi_finite)),
+        'roi_finite_fraction': float(len(roi_finite) / mask.sum() if mask.sum() > 0 else 0.0),
     }
     
     if len(roi_finite) > 0:
@@ -186,8 +192,8 @@ def compute_map_stats(map_arr: np.ndarray, mask: np.ndarray) -> Dict[str, float]
         # Positive values
         pos_mask = roi_finite > 0
         pos_vals = roi_finite[pos_mask]
-        stats['n_pos_pixels'] = len(pos_vals)
-        stats['pos_frac_in_roi'] = len(pos_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0
+        stats['n_pos_pixels'] = int(len(pos_vals))  # Convert to Python int
+        stats['pos_frac_in_roi'] = float(len(pos_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0)
         if len(pos_vals) > 0:
             stats.update({
                 'pos_min': float(pos_vals.min()),
@@ -199,8 +205,8 @@ def compute_map_stats(map_arr: np.ndarray, mask: np.ndarray) -> Dict[str, float]
         # Negative values
         neg_mask = roi_finite < 0
         neg_vals = roi_finite[neg_mask]
-        stats['n_neg_pixels'] = len(neg_vals)
-        stats['neg_frac_in_roi'] = len(neg_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0
+        stats['n_neg_pixels'] = int(len(neg_vals))  # Convert to Python int
+        stats['neg_frac_in_roi'] = float(len(neg_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0)
         if len(neg_vals) > 0:
             stats.update({
                 'neg_min': float(neg_vals.min()),
@@ -212,8 +218,8 @@ def compute_map_stats(map_arr: np.ndarray, mask: np.ndarray) -> Dict[str, float]
         # Nonzero values
         nonzero_mask = roi_finite != 0
         nonzero_vals = roi_finite[nonzero_mask]
-        stats['n_nonzero_pixels'] = len(nonzero_vals)
-        stats['nonzero_frac_in_roi'] = len(nonzero_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0
+        stats['n_nonzero_pixels'] = int(len(nonzero_vals))  # Convert to Python int
+        stats['nonzero_frac_in_roi'] = float(len(nonzero_vals) / len(roi_finite) if len(roi_finite) > 0 else 0.0)
         if len(nonzero_vals) > 0:
             stats.update({
                 'nonzero_min': float(nonzero_vals.min()),
@@ -247,31 +253,47 @@ def average_by_cid(records: List[ActivityMapRecord]) -> Tuple[List[np.ndarray], 
 def _compute_map_quality_metrics(map_data: np.ndarray) -> Dict[str, float]:
     """Compute quality metrics for a single activity map.
     
+    Uses finite (non-NaN) pixels to assess map quality, properly handling
+    both positive and negative activity values.
+    
     Args:
-        map_data: Activity map as numpy array
+        map_data: Activity map as numpy array (may contain NaNs)
         
     Returns:
-        Dictionary with metrics: coverage_frac, range, mean_active, std_active
+        Dictionary with metrics: coverage_frac, range, mean_abs, std
     """
     total_pixels = map_data.size
-    active_mask = map_data > 0
-    active_pixels = active_mask.sum()
     
-    coverage_frac = active_pixels / total_pixels
+    # Count FINITE pixels (not just positive)
+    finite_mask = np.isfinite(map_data)
+    finite_pixels = finite_mask.sum()
     
-    min_val = map_data.min()
-    max_val = map_data.max()
+    coverage_frac = finite_pixels / total_pixels if total_pixels > 0 else 0.0
+    
+    # Get finite values only
+    finite_vals = map_data[finite_mask]
+    
+    if len(finite_vals) == 0:
+        return {
+            'coverage_frac': 0.0,
+            'range': 0.0,
+            'mean_abs': 0.0,
+            'std': 0.0,
+        }
+    
+    min_val = finite_vals.min()
+    max_val = finite_vals.max()
     value_range = max_val - min_val
     
-    active_vals = map_data[active_mask]
-    mean_active = active_vals.mean() if active_vals.size > 0 else 0.0  # NumPy: use .size
-    std_active = active_vals.std() if active_vals.size > 0 else 0.0
+    # Use ABSOLUTE VALUE for mean (captures activity strength regardless of sign)
+    mean_abs = np.abs(finite_vals).mean()
+    std = finite_vals.std()
     
     return {
         'coverage_frac': coverage_frac,
         'range': value_range,
-        'mean_active': mean_active,
-        'std_active': std_active,
+        'mean_abs': mean_abs,
+        'std': std,
     }
 
 
@@ -299,10 +321,10 @@ def _z_score(values: List[float]) -> List[float]:
 def select_best_by_quality(records: List[ActivityMapRecord]) -> Tuple[List[np.ndarray], List[int], Dict]:
     """Select best map per CID using composite quality score.
     
-    Composite score = z(coverage) + z(range) - 0.5 * z(mean_active)
+    Composite score = z(coverage) + z(range) + z(mean_abs)
     
-    Higher coverage and range are better (more informative maps).
-    Lower mean_active can be better (less baseline activity, more dynamic range).
+    Higher coverage, range, and absolute activity strength indicate better quality maps.
+    Properly handles both positive and negative activity values.
     
     Args:
         records: All activity map records
@@ -341,17 +363,17 @@ def select_best_by_quality(records: List[ActivityMapRecord]) -> Tuple[List[np.nd
         # Extract metric lists
         coverages = [m['coverage_frac'] for m in map_metrics]
         ranges = [m['range'] for m in map_metrics]
-        means_active = [m['mean_active'] for m in map_metrics]
+        means_abs = [m['mean_abs'] for m in map_metrics]
         
         # Compute z-scores
         z_coverages = _z_score(coverages)
         z_ranges = _z_score(ranges)
-        z_means = _z_score(means_active)
+        z_means_abs = _z_score(means_abs)
         
-        # Compute composite score
+        # Compute composite score (all positive contributions)
         scores = []
         for i in range(n_maps):
-            score = z_coverages[i] + z_ranges[i] - 0.5 * z_means[i]
+            score = z_coverages[i] + z_ranges[i] + z_means_abs[i]
             scores.append(score)
         
         # Select best
@@ -494,18 +516,26 @@ def visualize_global_mask(mask: np.ndarray, output_path: str) -> None:
     visualize_map(mask.astype(float), title='Refined Global Mask', output_path=output_path, cmap='gray')
 
 
-def visualize_coverage(valid_counts: np.ndarray, output_path: str) -> None:
-    """Visualize coverage counts with zeros masked as NaN for clarity."""
+def visualize_coverage(valid_counts: np.ndarray, output_path: str, n_maps: int) -> None:
+    """Visualize coverage counts as percentage with zeros masked as NaN for clarity.
+    
+    Args:
+        valid_counts: Array showing number of maps covering each pixel
+        output_path: Where to save the visualization
+        n_maps: Total number of maps (for percentage calculation)
+    """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # Create a copy with zeros replaced by NaN for visualization
-    display_data = valid_counts.astype(float).copy()
-    display_data[display_data == 0] = np.nan
+    # Convert to percentage and create a copy with zeros replaced by NaN for visualization
+    coverage_percentage = (valid_counts / n_maps * 100).astype(float)
+    display_data = coverage_percentage.copy()
+    display_data[valid_counts == 0] = np.nan
     
     plt.figure(figsize=(8, 6))
-    im = plt.imshow(display_data, cmap='magma', interpolation='nearest')
-    plt.colorbar(im, label='Number of maps covering pixel')
-    plt.title('Coverage Counts (zeros = no coverage)')
+    im = plt.imshow(display_data, cmap='magma', interpolation='nearest', vmin=0, vmax=100)
+    cbar = plt.colorbar(im, label='Coverage (%)')
+    cbar.ax.set_ylabel('Coverage (%)', rotation=270, labelpad=20)
+    plt.title('Coverage Percentage (zeros = no coverage)')
     plt.axis('off')
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -533,7 +563,7 @@ def compute_and_save_global_mask(
     coverage_threshold: float = 0.5,
     min_region_size: int = 100,
     output_path: str = "data/02_processed/global_mask.npy"
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray]:
     """Compute global mask and save for reuse.
     
     Args:
@@ -546,10 +576,10 @@ def compute_and_save_global_mask(
         output_path: Where to save mask for reuse
         
     Returns:
-        Binary mask array (79, 43)
+        Tuple of (mask, valid_counts)
     """
     # Compute mask using existing function
-    mask = compute_global_mask(records, coverage_threshold, min_region_size)
+    mask, valid_counts = compute_global_mask(records, coverage_threshold, min_region_size)
     
     # Save mask
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -569,7 +599,7 @@ def compute_and_save_global_mask(
     with open(meta_path, 'w') as f:
         json.dump(metadata, f, indent=2)
     
-    return mask
+    return mask, valid_counts
 
 
 def load_global_mask(mask_path: str = "data/02_processed/global_mask.npy") -> np.ndarray:
@@ -606,15 +636,14 @@ def save_processed_maps(
     """
     os.makedirs(output_dir, exist_ok=True)
     
-    # Save as NPZ (efficient for loading)
+    # Save as NPZ (efficient for loading) - ONLY maps and cids to avoid pickle issues
     maps_array = np.stack(maps, axis=0)  # (n_molecules, 79, 43)
     cids_array = np.array(cids)
     
     np.savez(
         os.path.join(output_dir, 'processed_maps.npz'),
         maps=maps_array,
-        cids=cids_array,
-        **metadata
+        cids=cids_array
     )
     
     # Save metadata CSV
@@ -622,6 +651,7 @@ def save_processed_maps(
         'CID': cids,
         'selection_strategy': metadata.get('selection_strategy', 'unknown'),
         'coverage_threshold': metadata.get('coverage_threshold', 0.0),
+        'value_policy': metadata.get('value_policy', 'all'),
         'map_shape_h': [m.shape[0] for m in maps],
         'map_shape_w': [m.shape[1] for m in maps],
     })
@@ -647,13 +677,22 @@ def load_processed_maps(data_dir: str = "data/02_processed") -> Tuple[np.ndarray
     if not os.path.exists(maps_path):
         raise FileNotFoundError(f"Processed maps not found at {maps_path}")
     
+    # Load NPZ - no pickle needed since we only store numeric arrays
     data = np.load(maps_path)
     maps = data['maps']
     cids = data['cids']
     
-    # Extract metadata
-    metadata = {k: data[k].item() if hasattr(data[k], 'item') else data[k] 
-                for k in data.files if k not in ['maps', 'cids']}
+    # Load metadata from CSV file
+    metadata_csv_path = os.path.join(data_dir, 'processed_maps_metadata.csv')
+    metadata = {}
+    if os.path.exists(metadata_csv_path):
+        metadata_df = pd.read_csv(metadata_csv_path)
+        if len(metadata_df) > 0:
+            # Extract common metadata from first row
+            metadata['selection_strategy'] = metadata_df['selection_strategy'].iloc[0]
+            metadata['coverage_threshold'] = metadata_df['coverage_threshold'].iloc[0]
+            if 'value_policy' in metadata_df.columns:
+                metadata['value_policy'] = metadata_df['value_policy'].iloc[0]
     
     return maps, cids, metadata
 
@@ -662,11 +701,38 @@ def load_processed_maps(data_dir: str = "data/02_processed") -> Tuple[np.ndarray
 # Visualization Functions
 # ============================================================================
 
+def clear_old_visualizations(viz_dir: str) -> None:
+    """Remove old visualization files before generating new ones.
+    
+    Args:
+        viz_dir: Directory containing visualization files (viz/maps/)
+    """
+    if not os.path.exists(viz_dir):
+        return
+        
+    viz_files = [
+        'global_mask.png',
+        'coverage_counts.png',
+        'coverage_histogram.png',
+        'processed_map_example.png',
+        'processed_maps_gallery.png',
+    ]
+    
+    for filename in viz_files:
+        filepath = os.path.join(viz_dir, filename)
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception as e:
+                print(f"Warning: Could not remove {filename}: {e}")
+
+
 def visualize_processing_results(
     maps: List[np.ndarray],
     cids: List[int],
     mask: np.ndarray,
-    output_dir: str
+    valid_counts: np.ndarray,
+    viz_dir: str
 ) -> None:
     """Generate visualizations of processed maps.
     
@@ -674,19 +740,26 @@ def visualize_processing_results(
         maps: Processed activity maps
         cids: Corresponding CIDs
         mask: Global mask used
-        output_dir: Where to save visualizations
+        valid_counts: Coverage counts array
+        viz_dir: Where to save visualizations (viz/maps/)
     """
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(viz_dir, exist_ok=True)
     
     # Visualize global mask
-    visualize_global_mask(mask, os.path.join(output_dir, 'global_mask.png'))
+    visualize_global_mask(mask, os.path.join(viz_dir, 'global_mask.png'))
+    
+    # Visualize coverage counts
+    visualize_coverage(valid_counts, os.path.join(viz_dir, 'coverage_counts.png'), len(maps))
+    
+    # Visualize coverage histogram
+    visualize_coverage_histogram(valid_counts, os.path.join(viz_dir, 'coverage_histogram.png'))
     
     # Example map
     if maps:
         visualize_map(
             maps[0],
             title=f'Processed Map CID={cids[0]}',
-            output_path=os.path.join(output_dir, 'processed_map_example.png'),
+            output_path=os.path.join(viz_dir, 'processed_map_example.png'),
             mask=mask
         )
         
@@ -709,7 +782,7 @@ def visualize_processing_results(
             axes[j].axis('off')
         
         plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'processed_maps_gallery.png'), dpi=300)
+        plt.savefig(os.path.join(viz_dir, 'processed_maps_gallery.png'), dpi=300)
         plt.close()
 
 
@@ -724,7 +797,6 @@ def process_activity_maps(
     selection_strategy: SelectionStrategy = SelectionStrategy.BEST_QUALITY,
     coverage_threshold: float = 0.5,
     min_region_size: int = 100,
-    nan_policy: str = "to_zero",
     value_policy: str = "all",
     save_visualizations: bool = True,
     verbose: bool = False,
@@ -732,23 +804,24 @@ def process_activity_maps(
     """Complete activity maps processing pipeline.
     
     Pipeline steps:
-    1. Load all activity maps from CSV files
+    1. Load all activity maps from CSV files (preserves NaNs)
     2. Compute global mask based on coverage threshold
-    3. Apply global mask to all maps
+    3. Apply global mask to all maps (outside ROI → NaN)
     4. Select one map per CID using specified strategy
-    5. Apply value policy and NaN policy
-    6. Compute QC statistics
-    7. Save processed maps and metadata
-    8. Generate visualizations (optional)
+    5. Compute QC statistics (before value filtering)
+    6. Apply value policy (filtered values → NaN)
+    7. Convert ALL NaNs to zeros (for neural network training)
+    8. Clear old visualizations
+    9. Generate fresh visualizations
+    10. Save processed maps and metadata
     
     Args:
         directory_csv: Path to behavior CSV
         data_dir: Directory with activity_maps_csv/
         output_dir: Where to save processed outputs
-        selection_strategy: Which selection method to use
+        selection_strategy: Which selection method to use (default: BEST_QUALITY)
         coverage_threshold: Fraction for global mask (0.0-1.0)
         min_region_size: Min pixels in connected regions
-        nan_policy: "to_zero" or "keep" - how to handle NaNs at end
         value_policy: "all", "pos", or "neg" - value filtering inside ROI
         save_visualizations: Whether to generate plots
         verbose: Print detailed info
@@ -763,64 +836,44 @@ def process_activity_maps(
     print("="*80)
     
     # Step 1: Load all maps
-    print(f"\n[1/6] Loading activity maps from {data_dir}...")
+    print(f"\n[1/10] Loading activity maps from {data_dir}...")
     df = load_directory_csv(directory_csv)
     if verbose:
-        print(f"      Directory rows: {len(df)}")
+        print(f"        Directory rows: {len(df)}")
     records = load_activity_maps(df, data_dir=data_dir)
-    print(f"      ✓ Loaded {len(records)} activity maps")
+    print(f"        ✓ Loaded {len(records)} activity maps")
     
     # Step 2: Compute global mask
-    print(f"\n[2/6] Computing global mask (threshold={coverage_threshold})...")
-    mask = compute_and_save_global_mask(
+    print(f"\n[2/10] Computing global mask (threshold={coverage_threshold})...")
+    mask, valid_counts = compute_and_save_global_mask(
         records,
         coverage_threshold=coverage_threshold,
         min_region_size=min_region_size,
         output_path=os.path.join(output_dir, 'global_mask.npy')
     )
     mask_coverage = mask.sum() / mask.size
-    print(f"      ✓ Mask coverage: {mask_coverage:.2%} ({mask.sum()}/{mask.size} pixels)")
+    print(f"        ✓ Mask coverage: {mask_coverage:.2%} ({mask.sum()}/{mask.size} pixels)")
     
     # Step 3: Apply mask
-    print(f"\n[3/6] Applying global mask to all maps...")
+    print(f"\n[3/10] Applying global mask to all maps...")
     masked_records = apply_mask(records, mask)
-    print(f"      ✓ Applied mask to {len(masked_records)} maps")
+    print(f"        ✓ Applied mask to {len(masked_records)} maps")
     
     # Step 4: Select maps by strategy
-    print(f"\n[4/8] Selecting maps using strategy: {selection_strategy.value}...")
+    print(f"\n[4/10] Selecting maps using strategy: {selection_strategy.value}...")
     selected_maps, cids, selection_metadata = select_maps_by_strategy(
         masked_records,
         strategy=selection_strategy
     )
-    print(f"      ✓ Selected {len(selected_maps)} maps (one per CID)")
+    print(f"        ✓ Selected {len(selected_maps)} maps (one per CID)")
     if 'n_single_map' in selection_metadata:
-        print(f"        - Single map CIDs: {selection_metadata['n_single_map']}")
-        print(f"        - Multi map CIDs: {selection_metadata['n_multi_map']}")
+        print(f"          - Single map CIDs: {selection_metadata['n_single_map']}")
+        print(f"          - Multi map CIDs: {selection_metadata['n_multi_map']}")
     
-    # Step 5: Apply value policy
-    print(f"\n[5/8] Applying value policy: {value_policy}...")
-    processed_maps = []
-    for map_arr in selected_maps:
-        processed_maps.append(apply_value_policy(map_arr, mask, value_policy))
-    print(f"      ✓ Applied value policy to {len(processed_maps)} maps")
-    
-    # Step 6: Apply NaN policy
-    print(f"\n[6/8] Applying NaN policy: {nan_policy}...")
-    if nan_policy == "to_zero":
-        final_maps = []
-        for map_arr in processed_maps:
-            final_maps.append(np.nan_to_num(map_arr, nan=0.0))
-        print(f"      ✓ Converted NaNs to zeros in {len(final_maps)} maps")
-    elif nan_policy == "keep":
-        final_maps = processed_maps
-        print(f"      ✓ Kept NaNs intact in {len(final_maps)} maps")
-    else:
-        raise ValueError(f"Unknown nan_policy: {nan_policy}")
-    
-    # Step 7: Compute QC statistics
-    print(f"\n[7/8] Computing QC statistics...")
+    # Step 5: Compute QC statistics (BEFORE value policy)
+    print(f"\n[5/10] Computing QC statistics...")
     all_stats = []
-    for map_arr in processed_maps:  # Use processed_maps before nan_policy for stats
+    for map_arr in selected_maps:  # Before value policy!
         stats = compute_map_stats(map_arr, mask)
         all_stats.append(stats)
     
@@ -828,18 +881,31 @@ def process_activity_maps(
     stats_path = os.path.join(output_dir, 'map_statistics.json')
     with open(stats_path, 'w') as f:
         json.dump({
-            'cids': cids,
+            'cids': [int(c) for c in cids],  # Convert numpy int64 to Python int
             'statistics': all_stats,
             'summary': {
                 'n_maps': len(all_stats),
                 'value_policy': value_policy,
-                'nan_policy': nan_policy,
             }
         }, f, indent=2)
-    print(f"      ✓ Computed and saved statistics for {len(all_stats)} maps")
+    print(f"        ✓ Computed and saved statistics for {len(all_stats)} maps")
+    
+    # Step 6: Apply value policy (filtered values → NaN)
+    print(f"\n[6/10] Applying value policy: {value_policy}...")
+    processed_maps = []
+    for map_arr in selected_maps:
+        processed_maps.append(apply_value_policy(map_arr, mask, value_policy))
+    print(f"        ✓ Applied value policy to {len(processed_maps)} maps")
+    
+    # Step 7: Convert ALL NaNs to zeros (ALWAYS)
+    print(f"\n[7/10] Converting NaNs to zeros...")
+    final_maps = []
+    for map_arr in processed_maps:
+        final_maps.append(np.nan_to_num(map_arr, nan=0.0))
+    print(f"        ✓ Converted NaNs to zeros in {len(final_maps)} maps")
     
     # Step 8: Save processed maps
-    print(f"\n[8/8] Saving processed maps to {output_dir}...")
+    print(f"\n[8/10] Saving processed maps to {output_dir}...")
     save_processed_maps(
         maps=final_maps,
         cids=cids,
@@ -848,24 +914,35 @@ def process_activity_maps(
             'selection_strategy': selection_strategy.value,
             'coverage_threshold': coverage_threshold,
             'min_region_size': min_region_size,
-            'nan_policy': nan_policy,
             'value_policy': value_policy,
             'n_maps': len(final_maps),
             'mask_active_pixels': int(mask.sum()),
             'mask_coverage_fraction': float(mask_coverage),
+            **selection_metadata,  # Include selection details
         }
     )
+    
+    # Step 9: Clear old visualizations
     if save_visualizations:
-        print(f"\n[9/9] Generating visualizations...")
+        print(f"\n[9/10] Clearing old visualizations...")
+        viz_dir = os.path.join('viz', 'maps')
+        clear_old_visualizations(viz_dir)
+        print(f"        ✓ Cleared old visualization files")
+    
+    # Step 10: Generate fresh visualizations
+    if save_visualizations:
+        print(f"\n[10/10] Generating fresh visualizations...")
+        viz_dir = os.path.join('viz', 'maps')
         visualize_processing_results(
             maps=final_maps,
             cids=cids,
             mask=mask,
-            output_dir=output_dir
+            valid_counts=valid_counts,
+            viz_dir=viz_dir
         )
-        print(f"      ✓ Saved visualizations to {output_dir}")
+        print(f"        ✓ Saved visualizations to {viz_dir}")
     else:
-        print(f"\n[9/9] Skipping visualizations")
+        print(f"\n[10/10] Skipping visualizations")
     
     print("\n" + "="*80)
     print("✓ PROCESSING COMPLETE")
@@ -875,68 +952,7 @@ def process_activity_maps(
         'n_molecules': len(final_maps),
         'selection_strategy': selection_strategy.value,
         'coverage_threshold': coverage_threshold,
-        'nan_policy': nan_policy,
         'value_policy': value_policy,
         'mask_coverage': float(mask_coverage),
     }
 
-
-def pipeline_load_and_mask(directory_csv: str, data_dir: str = 'data/01_raw', coverage_threshold: float = 1.0,
-                            output_dir: str = 'output_data', verbose: bool = False) -> Tuple[List[np.ndarray], List[int], np.ndarray]:
-    """High-level function: load directory, load maps, compute+apply mask, average by CID, and visualize.
-    
-    Args:
-        directory_csv: Path to behavior CSV with activity map paths
-        data_dir: Directory containing activity_maps_csv/ folder (default: 'data/01_raw')
-        coverage_threshold: Fraction of maps required to consider a pixel covered
-        output_dir: Directory to save visualizations
-        verbose: Print debug information
-    
-    Returns:
-        Tuple of (averaged_maps, cids, mask)
-    """
-    # Create output directory for visualizations
-    os.makedirs(output_dir, exist_ok=True)
-    
-    df = load_directory_csv(directory_csv)
-    if verbose:
-        print(f"Directory rows: {len(df)}")
-        print(df.head())
-    records = load_activity_maps(df, data_dir=data_dir)
-    # coverage visualization (before mask)
-    # Count how many maps have finite values at each pixel
-    shape = records[0].map.shape if records else (0, 0)
-    valid_counts = np.zeros(shape, dtype=int)
-    for r in records:
-        valid_counts += np.isfinite(r.map).astype(int)  # Count finite pixels
-    visualize_coverage(valid_counts, os.path.join(output_dir, 'coverage_counts.png'))
-    visualize_coverage_histogram(valid_counts, os.path.join(output_dir, 'coverage_histogram.png'))
-
-    mask = compute_global_mask(records, coverage_threshold=coverage_threshold)
-    masked_records = apply_mask(records, mask)
-    averaged_maps, cids = average_by_cid(masked_records)
-    # Visualizations
-    visualize_global_mask(mask, os.path.join(output_dir, 'global_mask.png'))
-    # Save example masked maps and a small gallery if available
-    if averaged_maps:
-        visualize_map(averaged_maps[0], title=f'Masked Averaged Map CID={cids[0]}',
-                      output_path=os.path.join(output_dir, 'masked_averaged_example.png'), mask=mask)
-        # Gallery of up to 6 averaged maps
-        n = min(len(averaged_maps), 6)
-        cols = 3
-        rows = (n + cols - 1) // cols
-        fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 4*rows))
-        axes = np.array(axes).reshape(-1)
-        for i in range(n):
-            ax = axes[i]
-            display_arr = mask_for_display(averaged_maps[i], mask)
-            ax.imshow(display_arr, cmap='viridis')
-            ax.set_title(f'CID={cids[i]}')
-            ax.axis('off')
-        # Hide unused axes
-        for j in range(n, len(axes)):
-            axes[j].axis('off')
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'masked_averaged_gallery.png'), dpi=300)
-        plt.close()
-    return averaged_maps, cids, mask

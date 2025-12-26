@@ -2,11 +2,13 @@
 """Process activity maps: select and mask maps for each CID.
 
 This script runs the complete activity maps preprocessing pipeline:
-1. Loads all activity maps from CSV files
+1. Loads all activity maps from CSV files (preserving NaNs)
 2. Computes global mask based on coverage threshold
-3. Applies mask to all maps
+3. Applies mask to all maps (outside ROI → NaN)
 4. Selects one map per CID using specified strategy
-5. Saves processed maps for training
+5. Applies value policy filtering (filtered values → NaN)
+6. Converts ALL NaNs to zeros (for neural network training)
+7. Saves processed maps for training
 
 Usage examples:
     # Default: best quality selection, 50% coverage
@@ -20,6 +22,9 @@ Usage examples:
     
     # Median selection (robust to outliers)
     python scripts/run_activity_maps.py --strategy median
+    
+    # Keep only positive values inside ROI
+    python scripts/run_activity_maps.py --value-policy pos
     
     # Quick test without visualizations
     python scripts/run_activity_maps.py --strategy first --no-visualizations
@@ -54,9 +59,6 @@ Examples:
   # Keep only positive values inside ROI
   python scripts/run_activity_maps.py --value-policy pos
   
-  # Preserve NaNs for analysis (don't convert to zeros)
-  python scripts/run_activity_maps.py --nan-policy keep
-  
   # Quick test without visualizations
   python scripts/run_activity_maps.py --strategy first --no-visualizations
         """
@@ -88,10 +90,6 @@ Examples:
                        help='Minimum connected region size in pixels (default: 100)')
     
     # Value processing parameters
-    parser.add_argument('--nan-policy', type=str,
-                       default='to_zero',
-                       choices=['to_zero', 'keep'],
-                       help='How to handle NaNs at end: "to_zero" or "keep" (default: to_zero)')
     parser.add_argument('--value-policy', type=str,
                        default='all',
                        choices=['all', 'pos', 'neg'],
@@ -117,7 +115,6 @@ Examples:
         selection_strategy=SelectionStrategy(args.strategy),
         coverage_threshold=args.coverage_threshold,
         min_region_size=args.min_region_size,
-        nan_policy=args.nan_policy,
         value_policy=args.value_policy,
         save_visualizations=not args.no_visualizations,
         verbose=args.verbose,
@@ -130,7 +127,6 @@ Examples:
     print(f"Molecules processed: {results['n_molecules']}")
     print(f"Selection strategy:  {results['selection_strategy']}")
     print(f"Coverage threshold:  {results['coverage_threshold']}")
-    print(f"NaN policy:         {results['nan_policy']}")
     print(f"Value policy:       {results['value_policy']}")
     print(f"Mask coverage:       {results['mask_coverage']:.2%}")
     print("="*80)

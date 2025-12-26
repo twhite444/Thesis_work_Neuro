@@ -215,7 +215,7 @@ class PyrfumeLoader(DatasetLoader):
             # Load from pyrfume (format: csvs/1031_0.csv)
             try:
                 map_df = pyrfume.load_data(f'leon/{map_path}')
-                arr = np.nan_to_num(map_df.to_numpy(), nan=0.0)
+                arr = map_df.to_numpy()  # Preserve NaN values!
                 cid = int(row['Stimulus'])
                 records.append(ActivityMapRecord(cid=cid, map=arr))
                 

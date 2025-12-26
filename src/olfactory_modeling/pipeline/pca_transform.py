@@ -117,7 +117,7 @@ def fit_pca_on_maps(
         print(f"✓ Saved PCA-transformed maps (CSV) to {csv_path}")
     
     if visualize:
-        viz_dir = os.path.join(output_dir, '../viz')
+        viz_dir = os.path.join('viz', 'pca')
         os.makedirs(viz_dir, exist_ok=True)
         _visualize_pca_results(pca, maps.shape[1:], explained_var, cumulative_var, viz_dir)
     

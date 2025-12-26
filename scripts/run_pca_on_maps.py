@@ -112,7 +112,8 @@ def main():
     # Additional visualization: scatter plot
     if not args.no_visualize:
         print("\nGenerating PCA scatter plot...")
-        viz_dir = Path(args.output_dir).parent / 'viz'
+        viz_dir = Path('viz') / 'pca'
+        viz_dir.mkdir(parents=True, exist_ok=True)
         visualize_pca_scatter_2d(
             pca_transformed=pca_maps,
             cids=cids,
