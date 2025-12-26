@@ -166,12 +166,8 @@ def collect_pipeline_metadata(
     if preprocess_meta:
         metadata['preprocessing'] = preprocess_meta
     
-    # 4. Feature Selection Metadata
-    feature_select_meta = load_json_safe(str(processed_path / "feature_select_meta.json"))
-    if feature_select_meta:
-        metadata['feature_selection'] = feature_select_meta
     
-    # 5. Scaler Statistics
+    # 4. Scaler Statistics
     scaler_stats_path = processed_path / "scaler_stats.json"
     if scaler_stats_path.exists():
         try:
@@ -179,7 +175,7 @@ def collect_pipeline_metadata(
                 scaler_stats = json.load(f)
                 # Just include summary info, not all feature means/stds
                 metadata['scaler'] = {
-                    'n_features': len(scaler_stats.get('feature_means', [])),
+                    'n_features': len(scaler_stats.get('means', [])),
                     'method': 'StandardScaler',
                 }
         except Exception as e:
