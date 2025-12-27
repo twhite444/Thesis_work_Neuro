@@ -43,6 +43,7 @@ from ..training.post_training import (
     update_fold_metadata,
 )
 from ..evaluation.cross_validation import aggregate_cv_metrics
+from ..evaluation.kfold_runner import run_kfold_training, log_kfold_summary
 from ..evaluation.hyperparameter_search import grid_search
 
 logger = get_logger(__name__)
@@ -184,102 +185,27 @@ def train_nn_kfold(
         ... )
         >>> print(f"Mean correlation: {results['mean_metrics']['correlation']:.3f} ± {results['std_metrics']['correlation']:.3f}")
     """
-    from sklearn.model_selection import KFold
-    from torch.utils.data import Subset, DataLoader
-    
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
-    # Initialize K-fold splitter
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_seed)
+    # Run K-fold training loop (delegated to kfold_runner)
+    fold_metrics = run_kfold_training(
+        model_factory=model_factory,
+        dataset=dataset,
+        train_fn=train_nn,
+        output_dir=output_dir,
+        n_splits=n_splits,
+        num_epochs=num_epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
+        early_stopping_patience=early_stopping_patience,
+        random_seed=random_seed,
+        device=device,
+        verbose=verbose,
+    )
     
-    # Storage for results
-    fold_metrics = []
-    
-    if verbose:
-        logger.info("="*70)
-        logger.info(f"K-FOLD CROSS-VALIDATION ({n_splits} folds)")
-        logger.info("="*70)
-        logger.info(f"Total samples: {len(dataset)}")
-        logger.info(f"Samples per fold: ~{len(dataset) // n_splits}")
-        logger.info(f"Epochs per fold: {num_epochs}")
-        logger.info(f"Learning rate: {learning_rate}")
-        logger.info(f"Batch size: {batch_size}")
-        if early_stopping_patience > 0:
-            logger.info(f"Early stopping: {early_stopping_patience} epochs")
-        logger.info("="*70)
-    
-    # Iterate over folds
-    for fold_idx, (train_indices, val_indices) in enumerate(kf.split(range(len(dataset))), 1):
-        if verbose:
-            logger.info(f"{'='*70}")
-            logger.info(f"FOLD {fold_idx}/{n_splits}")
-            logger.info(f"{'='*70}")
-            logger.info(f"Train samples: {len(train_indices)}")
-            logger.info(f"Val samples: {len(val_indices)}")
-        
-        # Create subsets for this fold
-        train_subset = Subset(dataset, train_indices)
-        val_subset = Subset(dataset, val_indices)
-        
-        # Create dataloaders
-        train_loader = DataLoader(
-            train_subset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=0,
-            pin_memory=False,
-        )
-        
-        val_loader = DataLoader(
-            val_subset,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=0,
-            pin_memory=False,
-        )
-        
-        # Create fresh model for this fold
-        model = model_factory()
-        
-        # Train on this fold
-        fold_output_dir = os.path.join(output_dir, f'fold_{fold_idx}')
-        fold_results = train_nn(
-            model=model,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            output_dir=fold_output_dir,
-            num_epochs=num_epochs,
-            learning_rate=learning_rate,
-            weight_decay=weight_decay,
-            early_stopping_patience=early_stopping_patience,
-            device=device,
-            verbose=verbose,
-        )
-        
-        # Update fold metadata with K-fold split information
-        update_fold_metadata(
-            fold_output_dir=fold_output_dir,
-            dataset=dataset,
-            train_indices=train_indices,
-            val_indices=val_indices,
-            fold_idx=fold_idx,
-            n_splits=n_splits,
-            random_seed=random_seed,
-        )
-        
-        # Store results
-        fold_results['fold'] = fold_idx
-        fold_metrics.append(fold_results)
-        
-        if verbose:
-            logger.info(f"\nFold {fold_idx} Results:")
-            logger.info(f"  Best Val Loss: {fold_results['best_val_loss']:.4f}")
-            logger.info(f"  Best Val Correlation: {fold_results['best_val_correlation']:.3f}")
-            logger.info(f"  Best Val R²: {fold_results['best_val_r2']:.3f}")
-            logger.info(f"  Best Epoch: {fold_results['best_epoch']}")
-    
-    # Aggregate results across folds using helper
+    # Aggregate results across folds
     metric_names = ['best_val_loss', 'best_val_correlation', 'best_val_r2', 'best_val_mae']
     mean_metrics, std_metrics = aggregate_cv_metrics(fold_metrics, metric_names)
     
@@ -324,17 +250,14 @@ def train_nn_kfold(
     
     # Print summary
     if verbose:
-        logger.info("\n" + "="*70)
-        logger.info("CROSS-VALIDATION SUMMARY")
-        logger.info("="*70)
-        logger.info(f"\nMean ± Std across {n_splits} folds:")
-        logger.info(f"  Val Loss:        {mean_metrics['best_val_loss']:.4f} ± {std_metrics['best_val_loss']:.4f}")
-        logger.info(f"  Val Correlation: {mean_metrics['best_val_correlation']:.3f} ± {std_metrics['best_val_correlation']:.3f}")
-        logger.info(f"  Val R²:          {mean_metrics['best_val_r2']:.3f} ± {std_metrics['best_val_r2']:.3f}")
-        logger.info(f"  Val MAE:         {mean_metrics['best_val_mae']:.4f} ± {std_metrics['best_val_mae']:.4f}")
-        logger.info(f"\nBest fold: {best_fold} (val_loss={fold_metrics[best_fold_idx]['best_val_loss']:.4f})")
-        logger.info(f"Results saved to: {output_dir}")
-        logger.info("="*70)
+        log_kfold_summary(
+            mean_metrics=mean_metrics,
+            std_metrics=std_metrics,
+            best_fold=best_fold,
+            best_fold_loss=fold_metrics[best_fold_idx]['best_val_loss'],
+            n_splits=n_splits,
+            output_dir=output_dir,
+        )
     
     # Generate visualization
     generate_kfold_visualization(output_dir, verbose)
