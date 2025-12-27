@@ -21,14 +21,12 @@ Note: Core training logic extracted to training/ and evaluation/ modules for
 from __future__ import annotations
 
 import os
-import json
 from typing import Dict, Optional, Any
 
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import numpy as np
-import pandas as pd
 
 from ..utils.logging_config import get_logger
 from ..utils.metadata_logger import collect_training_run_metadata, collect_kfold_run_metadata
@@ -40,7 +38,6 @@ from ..training.post_training import (
     save_kfold_results,
     save_kfold_metadata,
     generate_kfold_visualization,
-    update_fold_metadata,
 )
 from ..evaluation.cross_validation import aggregate_cv_metrics
 from ..evaluation.kfold_runner import run_kfold_training, log_kfold_summary
