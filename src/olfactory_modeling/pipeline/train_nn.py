@@ -1,36 +1,34 @@
 """Neural network training pipeline for activity map prediction.
 
-Follows the same pattern as train_linear.py but for neural networks.
+High-level wrapper functions for neural network training following the same
+pattern as train_linear.py.
 
-Module Structure:
-    - Helper Functions: Reusable utilities for validation, checkpointing, metrics, and visualization
-    - Core Functions: Metric computation and epoch-level training/validation
-    - Training Functions: train_nn for single train/val split
-    - Cross-Validation: train_nn_kfold for robust K-fold evaluation
-    - Hyperparameter Search: grid_search for systematic parameter optimization
+Public API:
+    - train_nn: Train with single train/val split
+    - train_nn_kfold: Train with K-fold cross-validation
+    - grid_search: Systematic hyperparameter optimization (imported from evaluation)
 
 Features:
+    - Delegates core training to Trainer class (composition-based design)
     - Automatic device detection (CUDA/MPS/CPU)
-    - TensorBoard logging and visualization
-    - Early stopping support
-    - Comprehensive error handling and logging
+    - Comprehensive metadata and result logging
+    - Error-resilient visualization generation
     - Parameter validation to prevent user errors
-    - Modular design for testability and maintainability
+    
+Note: Core training logic extracted to training/ and evaluation/ modules for
+      better modularity and testability.
 """
 from __future__ import annotations
 
 import os
-from typing import Dict, Optional, Any
 import json
+from typing import Dict, Optional, Any
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 
 from ..utils.logging_config import get_logger
 from ..utils.metadata_logger import (
@@ -41,11 +39,8 @@ from ..utils.metadata_logger import (
     collect_kfold_split_info,
     save_comprehensive_metadata,
 )
-from ..training.metrics import compute_metrics
-from ..training.io_utils import save_checkpoint, generate_visualization_safe, save_json_safe
+from ..training.io_utils import generate_visualization_safe, save_json_safe
 from ..training.validation import validate_training_params
-from ..training.epoch_runners import train_epoch, validate_epoch
-from ..training.setup import get_device, setup_training_components
 from ..training.trainers import Trainer, TrainerConfig
 from ..evaluation.cross_validation import aggregate_cv_metrics
 from ..evaluation.hyperparameter_search import grid_search
