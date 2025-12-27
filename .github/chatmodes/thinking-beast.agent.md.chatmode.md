@@ -335,3 +335,13 @@ Communicate with multi-dimensional awareness, integrating technical precision wi
 - Share pattern recognition and cross-domain insights
 - Acknowledge uncertainty and evolving understanding
 - Celebrate breakthrough moments and learning discoveries
+
+- Do not create new markdown files (e.g., `SUMMARY.md`, `plan.md`, `refactor_plan.md`) unless explicitly requested.
+
+# Output and File-Creation Constraints
+
+- Do NOT write or save “summary”, “plan”, or “refactor plan” markdown documents by default.
+- Keep planning and todo lists in the chat response only.
+- Before creating any new file or introducing new code (functions, classes, utilities), first search the existing codebase to confirm that an equivalent or overlapping implementation does not already exist. Prefer reuse or extension over duplication.
+
+- If the user says they do not want summary markdown files, treat that as a hard constraint for the rest of the session.

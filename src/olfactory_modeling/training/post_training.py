@@ -16,7 +16,7 @@ import pandas as pd
 import numpy as np
 
 from ..utils.logging_config import get_logger
-from ..utils.metadata_logger import save_comprehensive_metadata, collect_kfold_split_info
+from ..utils.training_metadata import save_comprehensive_metadata, collect_kfold_split_info
 from .io_utils import save_json_safe, generate_visualization_safe
 
 logger = get_logger(__name__)
@@ -74,7 +74,15 @@ def generate_training_visualization(
         verbose: Whether to log progress
     """
     try:
-        from olfactory_modeling.visualization import plot_training_curves
+        from olfactory_modeling.visualization.training_viz import (
+            plot_training_curves,
+            plot_prediction_scatter,
+            plot_activity_map_comparison,
+            create_training_report,
+            plot_feature_importance,
+        )
+        os.makedirs(output_dir, exist_ok=True)
+        # Always save training curves
         generate_visualization_safe(
             plot_training_curves,
             metrics_dict,
@@ -82,6 +90,77 @@ def generate_training_visualization(
             show_r2=True,
             verbose=verbose,
         )
+
+
+        # Save prediction scatter and activity map comparison if predictions/targets are present
+        predictions = metrics_dict.get('predictions')
+        targets = metrics_dict.get('targets')
+        if predictions is not None and targets is not None:
+            generate_visualization_safe(
+                plot_prediction_scatter,
+                predictions,
+                targets,
+                output_path=os.path.join(output_dir, 'prediction_scatter.png'),
+                title="Predictions vs Ground Truth",
+                verbose=verbose,
+            )
+            if len(predictions.shape) == 3 and len(targets.shape) == 3:
+                # Save activity map comparison as both activity_maps.png and activity_map_comparison.png
+                generate_visualization_safe(
+                    plot_activity_map_comparison,
+                    predictions,
+                    targets,
+                    n_samples=4,
+                    output_path=os.path.join(output_dir, 'activity_map_comparison.png'),
+                    verbose=verbose,
+                )
+                generate_visualization_safe(
+                    plot_activity_map_comparison,
+                    predictions,
+                    targets,
+                    n_samples=4,
+                    output_path=os.path.join(output_dir, 'activity_maps.png'),
+                    verbose=verbose,
+                )
+
+        # Save training report as both training_report.png and full_report.png
+        try:
+            generate_visualization_safe(
+                create_training_report,
+                metrics_dict,
+                predictions=predictions,
+                targets=targets,
+                output_path=os.path.join(output_dir, 'training_report.png'),
+                verbose=verbose,
+            )
+            generate_visualization_safe(
+                create_training_report,
+                metrics_dict,
+                predictions=predictions,
+                targets=targets,
+                output_path=os.path.join(output_dir, 'full_report.png'),
+                verbose=verbose,
+            )
+        except Exception as e:
+            if verbose:
+                logger.warning(f"Could not generate training report: {e}")
+
+        # Save feature importance if model and feature_names are available
+        model = metrics_dict.get('model')
+        feature_names = metrics_dict.get('feature_names')
+        if model is not None:
+            try:
+                generate_visualization_safe(
+                    plot_feature_importance,
+                    model,
+                    feature_names=feature_names,
+                    top_n=20,
+                    output_path=os.path.join(output_dir, 'feature_importance.png'),
+                    verbose=verbose,
+                )
+            except Exception as e:
+                if verbose:
+                    logger.warning(f"Could not generate feature importance plot: {e}")
     except ImportError as e:
         if verbose:
             logger.warning(f"Could not import visualization module: {e}")
@@ -159,7 +238,8 @@ def generate_kfold_visualization(
     """
     try:
         from olfactory_modeling.visualization import plot_cv_results
-        cv_results_path = os.path.join(output_dir, 'cv_results.json')
+        os.makedirs(output_dir, exist_ok=True)
+        cv_results_path = os.path.join(os.path.dirname(output_dir), 'cv_results.json')
         generate_visualization_safe(
             plot_cv_results,
             cv_results_path,

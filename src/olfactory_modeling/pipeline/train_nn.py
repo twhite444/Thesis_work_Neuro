@@ -29,7 +29,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 from ..utils.logging_config import get_logger
-from ..utils.metadata_logger import collect_training_run_metadata, collect_kfold_run_metadata
+from ..utils.training_metadata import collect_training_run_metadata, collect_kfold_run_metadata
 from ..training.validation import validate_training_params
 from ..training.trainers import Trainer, TrainerConfig
 from ..training.post_training import (
@@ -123,9 +123,53 @@ def train_nn(
         device=trainer.device,
     )
     
+    # Optionally get predictions and targets for visualization
+    predictions = None
+    targets = None
+    feature_names = None
+    try:
+        # If val_loader has dataset with targets, get them
+        if hasattr(val_loader.dataset, 'targets'):
+            targets = val_loader.dataset.targets
+        if hasattr(val_loader.dataset, 'tensors') and isinstance(val_loader.dataset.tensors, (tuple, list)):
+            # For TensorDataset: (features, targets)
+            targets = val_loader.dataset.tensors[-1]
+        # If model has a predict method, use it
+        if hasattr(model, 'predict'):
+            predictions = model.predict(val_loader)
+        # Otherwise, try to get predictions via forward pass
+        else:
+            model.eval()
+            preds = []
+            for batch in val_loader:
+                if isinstance(batch, (tuple, list)):
+                    x = batch[0]
+                else:
+                    x = batch
+                x = x.to(model.device) if hasattr(model, 'device') else x
+                with torch.no_grad():
+                    out = model(x)
+                preds.append(out.cpu().numpy() if hasattr(out, 'cpu') else out)
+            if preds:
+                predictions = np.concatenate(preds, axis=0)
+    except Exception as e:
+        logger.warning(f"Could not compute predictions/targets for visualization: {e}")
+    # Try to get feature names from train_loader
+    try:
+        if hasattr(train_loader.dataset, 'feature_names'):
+            feature_names = train_loader.dataset.feature_names
+    except Exception:
+        pass
+    # Add to metrics_dict for visualization
+    metrics_dict['model'] = model
+    metrics_dict['feature_names'] = feature_names
+    metrics_dict['predictions'] = predictions
+    metrics_dict['targets'] = targets
     # Save results and generate visualizations
     save_training_results(metrics_dict, metadata, output_dir, verbose)
-    generate_training_visualization(metrics_dict, output_dir, verbose)
+    viz_dir = os.path.join(output_dir, "ex_viz")
+    os.makedirs(viz_dir, exist_ok=True)
+    generate_training_visualization(metrics_dict, viz_dir, verbose)
     
     return metrics_dict
 
@@ -257,6 +301,8 @@ def train_nn_kfold(
         )
     
     # Generate visualization
-    generate_kfold_visualization(output_dir, verbose)
+    viz_dir = os.path.join(output_dir, "ex_viz")
+    os.makedirs(viz_dir, exist_ok=True)
+    generate_kfold_visualization(viz_dir, verbose)
     
     return cv_results
