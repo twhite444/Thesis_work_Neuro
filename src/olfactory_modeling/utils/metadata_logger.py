@@ -371,3 +371,180 @@ def save_comprehensive_metadata(
     except Exception as e:
         logger.error(f"Failed to save comprehensive metadata: {e}", exc_info=True)
         raise
+
+
+# ===== High-level metadata collection functions =====
+
+
+def collect_training_run_metadata(
+    model: torch.nn.Module,
+    train_loader,  # DataLoader type
+    val_loader,  # DataLoader type
+    num_epochs: int,
+    learning_rate: float,
+    weight_decay: float,
+    early_stopping_patience: int,
+    device: torch.device,
+    random_seed: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Collect comprehensive metadata for a single training run.
+    
+    Aggregates metadata from pipeline, model, training config, and data splits
+    into a single dictionary suitable for logging.
+    
+    Args:
+        model: PyTorch model being trained
+        train_loader: Training data loader
+        val_loader: Validation data loader
+        num_epochs: Number of training epochs
+        learning_rate: Learning rate used
+        weight_decay: L2 regularization parameter
+        early_stopping_patience: Early stopping patience
+        device: Device used for training
+        random_seed: Random seed for reproducibility
+        
+    Returns:
+        Dictionary containing all metadata components:
+            - pipeline: Activity maps, PCA, preprocessing metadata
+            - model: Model architecture and parameters
+            - training_config: Training hyperparameters
+            - data_split: Train/val split information
+    """
+    try:
+        # Determine if PCA was used
+        use_pca = hasattr(train_loader.dataset, 'use_pca') and train_loader.dataset.use_pca
+        processed_dir = getattr(train_loader.dataset, 'processed_dir', 'data/02_processed')
+        
+        # Collect all metadata components
+        pipeline_metadata = collect_pipeline_metadata(
+            processed_dir=str(processed_dir),
+            use_pca=use_pca,
+        )
+        
+        model_metadata = collect_model_metadata(model)
+        
+        training_config = collect_training_config(
+            num_epochs=num_epochs,
+            batch_size=train_loader.batch_size,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            early_stopping_patience=early_stopping_patience,
+            device=device,
+            random_seed=random_seed or getattr(train_loader.dataset, 'random_seed', None),
+            optimizer_name="Adam",
+        )
+        
+        split_info = collect_split_info(
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=None,
+            random_seed=random_seed or getattr(train_loader.dataset, 'random_seed', None),
+        )
+        
+        return {
+            'pipeline': pipeline_metadata,
+            'model': model_metadata,
+            'training_config': training_config,
+            'data_split': split_info,
+        }
+    except Exception as e:
+        logger.warning(f"Could not collect training metadata: {e}", exc_info=True)
+        return {}
+
+
+def collect_kfold_run_metadata(
+    model_factory: callable,
+    dataset,  # Dataset type
+    n_splits: int,
+    num_epochs: int,
+    batch_size: int,
+    learning_rate: float,
+    weight_decay: float,
+    early_stopping_patience: int,
+    random_seed: int,
+    device: Optional[torch.device],
+    mean_metrics: Dict[str, float],
+    std_metrics: Dict[str, float],
+    best_fold: int,
+) -> Dict[str, Any]:
+    """Collect comprehensive metadata for a K-fold CV run.
+    
+    Aggregates metadata for K-fold cross-validation experiments, including
+    pipeline, model, training config, and CV-specific information.
+    
+    Args:
+        model_factory: Function that creates model instances
+        dataset: Complete dataset used for K-fold CV
+        n_splits: Number of CV folds
+        num_epochs: Epochs per fold
+        batch_size: Batch size used
+        learning_rate: Learning rate used
+        weight_decay: L2 regularization parameter
+        early_stopping_patience: Early stopping patience
+        random_seed: Random seed for fold splits
+        device: Device used for training
+        mean_metrics: Mean metrics across folds
+        std_metrics: Standard deviation of metrics
+        best_fold: Best performing fold number
+        
+    Returns:
+        Dictionary containing all CV run metadata:
+            - pipeline: Activity maps, PCA, preprocessing metadata
+            - model: Model architecture and parameters
+            - training_config: Training hyperparameters
+            - cross_validation: K-fold CV configuration
+            - cv_results: Aggregated results across folds
+    """
+    try:
+        use_pca = hasattr(dataset, 'use_pca') and dataset.use_pca
+        processed_dir = getattr(dataset, 'processed_dir', 'data/02_processed')
+        
+        # Create sample model for metadata collection
+        sample_model = model_factory()
+        
+        pipeline_metadata = collect_pipeline_metadata(
+            processed_dir=str(processed_dir),
+            use_pca=use_pca,
+        )
+        
+        model_metadata = collect_model_metadata(sample_model)
+        
+        training_config = collect_training_config(
+            num_epochs=num_epochs,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            early_stopping_patience=early_stopping_patience,
+            device=device,
+            random_seed=random_seed,
+            optimizer_name="Adam",
+        )
+        
+        # K-fold specific split info
+        kfold_split_info = {
+            'cv_method': 'KFold',
+            'n_splits': n_splits,
+            'shuffle': True,
+            'random_seed': random_seed,
+            'total_samples': len(dataset),
+            'samples_per_fold': len(dataset) // n_splits,
+        }
+        
+        # Clean up sample model
+        del sample_model
+        
+        return {
+            'pipeline': pipeline_metadata,
+            'model': model_metadata,
+            'training_config': training_config,
+            'cross_validation': kfold_split_info,
+            'cv_results': {
+                'mean_metrics': mean_metrics,
+                'std_metrics': std_metrics,
+                'best_fold': int(best_fold),
+                'n_folds': n_splits,
+            },
+        }
+    except Exception as e:
+        logger.warning(f"Could not collect K-fold CV metadata: {e}", exc_info=True)
+        return {}

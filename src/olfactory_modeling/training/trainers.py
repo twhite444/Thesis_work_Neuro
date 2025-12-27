@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from ..utils.logging_config import get_logger
-from .metrics import compute_metrics
+from ..utils.metrics import compute_metrics
 from .io_utils import save_checkpoint
 from .epoch_runners import train_epoch, validate_epoch
 from .setup import get_device, setup_training_components

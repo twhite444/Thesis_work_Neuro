@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 from tqdm import tqdm
 
-from .metrics import compute_metrics
+from ..utils.metrics import compute_metrics
 
 
 def train_epoch(

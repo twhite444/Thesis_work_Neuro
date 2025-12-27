@@ -273,3 +273,68 @@ DEFAULT_RANDOM_SEED = 42
 Using a fixed seed ensures that visualizations are reproducible across runs,
 which is critical for scientific research and debugging.
 """
+
+
+def compute_metrics(pred: torch.Tensor, target: torch.Tensor) -> dict:
+    """Compute evaluation metrics for activity map prediction during training.
+    
+    This function computes batch-level metrics during neural network training,
+    including MSE, MAE, correlation, and R² score.
+    
+    Args:
+        pred: Predicted activity maps (batch_size, H, W)
+        target: Target activity maps (batch_size, H, W)
+        
+    Returns:
+        Dictionary containing:
+            - mse: Mean squared error
+            - mae: Mean absolute error
+            - correlation: Mean Pearson correlation across batch
+            - r2: R² score
+            
+    Example:
+        >>> import torch
+        >>> pred = torch.randn(32, 79, 43)
+        >>> target = torch.randn(32, 79, 43)
+        >>> metrics = compute_metrics(pred, target)
+        >>> 'mse' in metrics and 'correlation' in metrics
+        True
+    """
+    import torch.nn as nn
+    
+    metrics = {}
+    
+    # MSE (primary loss)
+    mse = nn.functional.mse_loss(pred, target)
+    metrics['mse'] = mse.item()
+    
+    # MAE
+    mae = nn.functional.l1_loss(pred, target)
+    metrics['mae'] = mae.item()
+    
+    # Spatial correlation (average over batch)
+    correlations = []
+    for p, t in zip(pred, target):
+        p_flat = p.flatten()
+        t_flat = t.flatten()
+        
+        # Pearson correlation
+        p_mean = p_flat.mean()
+        t_mean = t_flat.mean()
+        
+        numerator = ((p_flat - p_mean) * (t_flat - t_mean)).sum()
+        denominator = torch.sqrt(((p_flat - p_mean) ** 2).sum() * ((t_flat - t_mean) ** 2).sum())
+        
+        if denominator > 0:
+            corr = numerator / denominator
+            correlations.append(corr.item())
+    
+    metrics['correlation'] = np.mean(correlations) if correlations else 0.0
+    
+    # R² score
+    ss_res = ((target - pred) ** 2).sum()
+    ss_tot = ((target - target.mean()) ** 2).sum()
+    r2 = 1 - (ss_res / ss_tot)
+    metrics['r2'] = r2.item()
+    
+    return metrics

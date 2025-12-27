@@ -31,17 +31,17 @@ import numpy as np
 import pandas as pd
 
 from ..utils.logging_config import get_logger
-from ..utils.metadata_logger import (
-    collect_pipeline_metadata,
-    collect_model_metadata,
-    collect_training_config,
-    collect_split_info,
-    collect_kfold_split_info,
-    save_comprehensive_metadata,
-)
-from ..training.io_utils import generate_visualization_safe, save_json_safe
+from ..utils.metadata_logger import collect_training_run_metadata, collect_kfold_run_metadata
 from ..training.validation import validate_training_params
 from ..training.trainers import Trainer, TrainerConfig
+from ..training.post_training import (
+    save_training_results,
+    generate_training_visualization,
+    save_kfold_results,
+    save_kfold_metadata,
+    generate_kfold_visualization,
+    update_fold_metadata,
+)
 from ..evaluation.cross_validation import aggregate_cv_metrics
 from ..evaluation.hyperparameter_search import grid_search
 
@@ -113,73 +113,21 @@ def train_nn(
     trainer = Trainer(model, train_loader, val_loader, config)
     metrics_dict = trainer.train()
     
-    # Save metrics to JSON with error handling
-    try:
-        pd.Series({k: v for k, v in metrics_dict.items() if not isinstance(v, list)}).to_json(
-            os.path.join(output_dir, 'metrics.json')
-        )
-    except Exception as e:
-        logger.error(f"Failed to save metrics.json: {e}", exc_info=True)
+    # Collect metadata
+    metadata = collect_training_run_metadata(
+        model=model,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        num_epochs=num_epochs,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
+        early_stopping_patience=early_stopping_patience,
+        device=trainer.device,
+    )
     
-    # Collect and save comprehensive metadata
-    try:
-        # Determine if PCA was used
-        use_pca = hasattr(train_loader.dataset, 'use_pca') and train_loader.dataset.use_pca
-        processed_dir = getattr(train_loader.dataset, 'processed_dir', 'data/02_processed')
-        
-        # Collect all metadata
-        pipeline_metadata = collect_pipeline_metadata(
-            processed_dir=str(processed_dir),
-            use_pca=use_pca,
-        )
-        
-        model_metadata = collect_model_metadata(model)
-        
-        training_config = collect_training_config(
-            num_epochs=num_epochs,
-            batch_size=train_loader.batch_size,
-            learning_rate=learning_rate,
-            weight_decay=weight_decay,
-            early_stopping_patience=early_stopping_patience,
-            device=trainer.device,
-            random_seed=getattr(train_loader.dataset, 'random_seed', None),
-            optimizer_name="Adam",
-        )
-        
-        split_info = collect_split_info(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            test_loader=None,  # Test loader not provided in train_nn
-            random_seed=getattr(train_loader.dataset, 'random_seed', None),
-        )
-        
-        # Save comprehensive metadata
-        save_comprehensive_metadata(
-            output_dir=output_dir,
-            pipeline_metadata=pipeline_metadata,
-            model_metadata=model_metadata,
-            training_config=training_config,
-            split_info=split_info,
-            metrics={k: v for k, v in metrics_dict.items() if not isinstance(v, list)},
-            filename="run_metadata.json",
-            verbose=verbose,
-        )
-    except Exception as e:
-        logger.warning(f"Could not save comprehensive metadata: {e}", exc_info=True)
-    
-    # Generate visualization with error handling
-    try:
-        from olfactory_modeling.visualization import plot_training_curves
-        generate_visualization_safe(
-            plot_training_curves,
-            metrics_dict,
-            output_path=os.path.join(output_dir, 'training_curves.png'),
-            show_r2=True,
-            verbose=verbose,
-        )
-    except ImportError as e:
-        if verbose:
-            logger.warning(f"Could not import visualization module: {e}")
+    # Save results and generate visualizations
+    save_training_results(metrics_dict, metadata, output_dir, verbose)
+    generate_training_visualization(metrics_dict, output_dir, verbose)
     
     return metrics_dict
 
@@ -309,39 +257,16 @@ def train_nn_kfold(
             verbose=verbose,
         )
         
-        # Collect and save fold-specific metadata (including split indices)
-        try:
-            # Note: train_nn already saves comprehensive metadata via run_metadata.json
-            # Here we add fold-specific split information
-            use_pca = hasattr(dataset, 'use_pca') and dataset.use_pca
-            
-            fold_split_info = collect_kfold_split_info(
-                dataset=dataset,
-                fold_indices={'train': train_indices, 'val': val_indices},
-                fold_number=fold_idx,
-                n_splits=n_splits,
-                random_seed=random_seed,
-            )
-            
-            # Load the run_metadata.json and add fold split info
-            metadata_path = os.path.join(fold_output_dir, 'run_metadata.json')
-            if os.path.exists(metadata_path):
-                with open(metadata_path, 'r') as f:
-                    run_metadata = json.load(f)
-                
-                # Update with K-fold specific information
-                run_metadata['data_split'].update(fold_split_info)
-                run_metadata['cross_validation'] = {
-                    'fold_number': fold_idx,
-                    'total_folds': n_splits,
-                    'cv_random_seed': random_seed,
-                }
-                
-                # Save updated metadata
-                with open(metadata_path, 'w') as f:
-                    json.dump(run_metadata, f, indent=2)
-        except Exception as e:
-            logger.warning(f"Could not update fold metadata: {e}", exc_info=True)
+        # Update fold metadata with K-fold split information
+        update_fold_metadata(
+            fold_output_dir=fold_output_dir,
+            dataset=dataset,
+            train_indices=train_indices,
+            val_indices=val_indices,
+            fold_idx=fold_idx,
+            n_splits=n_splits,
+            random_seed=random_seed,
+        )
         
         # Store results
         fold_results['fold'] = fold_idx
@@ -362,7 +287,7 @@ def train_nn_kfold(
     best_fold_idx = np.argmin([fold['best_val_loss'] for fold in fold_metrics])
     best_fold = fold_metrics[best_fold_idx]['fold']
     
-    # Save aggregated results
+    # Build results dictionary
     cv_results = {
         'fold_metrics': fold_metrics,
         'mean_metrics': mean_metrics,
@@ -377,81 +302,27 @@ def train_nn_kfold(
         'early_stopping_patience': early_stopping_patience,
     }
     
-    # Save to JSON with error handling
-    json_results = {
-        'mean_metrics': {k: float(v) for k, v in mean_metrics.items()},
-        'std_metrics': {k: float(v) for k, v in std_metrics.items()},
-        'best_fold': int(best_fold),
-        'n_splits': n_splits,
-        'fold_results': [
-            {k: (float(v) if isinstance(v, (np.floating, float)) else int(v) if isinstance(v, (np.integer, int)) else v) 
-             for k, v in fold.items()}
-            for fold in fold_metrics
-        ]
-    }
-    save_json_safe(json_results, os.path.join(output_dir, 'cv_results.json'), verbose=verbose)
+    # Save K-fold results and metadata
+    save_kfold_results(fold_metrics, mean_metrics, std_metrics, best_fold, n_splits, output_dir, verbose)
     
-    # Save comprehensive metadata for the overall CV run
-    try:
-        use_pca = hasattr(dataset, 'use_pca') and dataset.use_pca
-        processed_dir = getattr(dataset, 'processed_dir', 'data/02_processed')
-        
-        # Collect pipeline and model metadata (using the first fold's model factory)
-        sample_model = model_factory()
-        
-        pipeline_metadata = collect_pipeline_metadata(
-            processed_dir=str(processed_dir),
-            use_pca=use_pca,
-        )
-        
-        model_metadata = collect_model_metadata(sample_model)
-        
-        training_config = collect_training_config(
-            num_epochs=num_epochs,
-            batch_size=batch_size,
-            learning_rate=learning_rate,
-            weight_decay=weight_decay,
-            early_stopping_patience=early_stopping_patience,
-            device=device,
-            random_seed=random_seed,
-            optimizer_name="Adam",
-        )
-        
-        # K-fold specific split info
-        kfold_split_info = {
-            'cv_method': 'KFold',
-            'n_splits': n_splits,
-            'shuffle': True,
-            'random_seed': random_seed,
-            'total_samples': len(dataset),
-            'samples_per_fold': len(dataset) // n_splits,
-        }
-        
-        # Save comprehensive metadata for CV run
-        comprehensive_cv_metadata = {
-            'pipeline': pipeline_metadata,
-            'model': model_metadata,
-            'training_config': training_config,
-            'cross_validation': kfold_split_info,
-            'cv_results': {
-                'mean_metrics': mean_metrics,
-                'std_metrics': std_metrics,
-                'best_fold': int(best_fold),
-                'n_folds': n_splits,
-            },
-        }
-        
-        with open(os.path.join(output_dir, 'cv_run_metadata.json'), 'w') as f:
-            json.dump(comprehensive_cv_metadata, f, indent=2)
-        
-        if verbose:
-            logger.info(f"✓ Saved comprehensive CV metadata to {output_dir}/cv_run_metadata.json")
-        
-        # Clean up sample model
-        del sample_model
-    except Exception as e:
-        logger.warning(f"Could not save comprehensive CV metadata: {e}", exc_info=True)
+    metadata = collect_kfold_run_metadata(
+        model_factory=model_factory,
+        dataset=dataset,
+        n_splits=n_splits,
+        num_epochs=num_epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
+        early_stopping_patience=early_stopping_patience,
+        random_seed=random_seed,
+        device=device,
+        mean_metrics=mean_metrics,
+        std_metrics=std_metrics,
+        best_fold=best_fold,
+    )
+    save_kfold_metadata(metadata, output_dir, verbose)
     
+    # Print summary
     if verbose:
         logger.info("\n" + "="*70)
         logger.info("CROSS-VALIDATION SUMMARY")
@@ -465,18 +336,7 @@ def train_nn_kfold(
         logger.info(f"Results saved to: {output_dir}")
         logger.info("="*70)
     
-    # Generate visualization with error handling
-    try:
-        from olfactory_modeling.visualization import plot_cv_results
-        cv_results_path = os.path.join(output_dir, 'cv_results.json')
-        generate_visualization_safe(
-            plot_cv_results,
-            cv_results_path,
-            output_path=os.path.join(output_dir, 'cv_analysis.png'),
-            verbose=verbose,
-        )
-    except ImportError as e:
-        if verbose:
-            logger.warning(f"Could not import visualization module: {e}")
+    # Generate visualization
+    generate_kfold_visualization(output_dir, verbose)
     
     return cv_results
